@@ -5,6 +5,7 @@
 *.mdb
 *.docx
 *.Rproj
+.Rproj
 Guidance/
 data/
 GIS/
