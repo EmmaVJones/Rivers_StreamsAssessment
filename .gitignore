@@ -4,7 +4,7 @@
 .Ruserdata
 *.mdb
 *.docx
-*.Rproj
+Rivers&StreamsAssessment.Rproj
 Guidance/
 data/
 GIS/
