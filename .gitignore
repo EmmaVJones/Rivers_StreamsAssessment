@@ -4,5 +4,7 @@
 .Ruserdata
 *.mdb
 *.docx
-Guidance/
 *.Rproj
+Guidance/
+data/
+GIS/
