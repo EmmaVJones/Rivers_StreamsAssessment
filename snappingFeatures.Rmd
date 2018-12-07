@@ -51,6 +51,7 @@ Start snapping sites to WQS. Use a 50 meter max buffer and buffer in 10 meter in
 snapList <- snap_Points_to_Feature_List(newSites_sf,'FDT_STA_ID',newWQS, seq(10,50,by=10))
 
 #saveRDS(snapList,'data/snapList_new.RDS')
+#snapList <- readRDS('data/snapList_new.RDS')
 ```
 
 Investigate the results.
@@ -69,6 +70,9 @@ So about half worked with 50m buffer.
 Try those that didn't work with 80 m buffer.
 
 ```{r try with 80 m buffer}
+newSites_sf2 <- filter(newSites_sf, FDT_STA_ID %in% fail$`Point Unique Identifier`)
 
 ```
+
+
 
