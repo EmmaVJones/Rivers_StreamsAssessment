@@ -72,7 +72,24 @@ Try those that didn't work with 80 m buffer.
 ```{r try with 80 m buffer}
 newSites_sf2 <- filter(newSites_sf, FDT_STA_ID %in% fail$`Point Unique Identifier`)
 snapList2 <- snap_Points_to_Feature_List(newSites_sf2,'FDT_STA_ID',newWQS, seq(60,100,by=10))
+```
 
+See what snapped in the 60-100m buffer range.
+
+```{r investigate bigger buffer}
+# sites that didnt find a segment within 100 m
+fail2 <- snapList2[['tbl_output']]
+nrow(fail2)
+success2 <- snapList2[['sf_output']]
+length(unique(success2$`Point Unique Identifier`))
+```
+
+Look at what's going on here on a map.
+
+```{r map it}
+noDice <- filter(newSites_sf, FDT_STA_ID %in% fail2$`Point Unique Identifier`)
+
+mapview(noDice) + mapview(newWQS)
 
 ```
 
