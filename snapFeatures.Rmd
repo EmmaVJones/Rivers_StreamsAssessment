@@ -93,3 +93,23 @@ mapview(noDice) + mapview(newWQS)
 
 ```
 
+Not a lot of overlap in newWQS and sites that filtered from conventionals into New basin. Need to figure out what these basin splits are in GIS. The updated WQS layers are split out by DEQ region, not major basin. This may be problematic when giving assessors tools that don't reach beyond their own assessment borders.
+
+
+#### Using assessment region as basis for snapping tool
+
+Try again but with all sites that fall into BRRO to make sure the WQS layers will be sufficient. 
+
+```{r BRRO snaps}
+BRRO_Sites_sf <- filter(conventionals, Deq_Region == "Blue Ridge") %>%
+  distinct(FDT_STA_ID, .keep_all = TRUE) %>%
+  select(FDT_STA_ID:FDT_SPG_CODE,STA_LV2_CODE:STA_CBP_NAME) %>% # drop sample data
+  st_as_sf(coords = c("Longitude", "Latitude"), 
+           remove = F, # don't remove these lat/lon cols from df
+           crs = 4269) %>% # add projection, needs to be geographic for now bc entering lat/lng, 
+  st_transform( st_crs(newWQS)) # now change crs to Albers to make snapping work
+
+snapList_allBRRO <- snap_Points_to_Feature_List(BRRO_Sites_sf,'FDT_STA_ID',newWQS, seq(10,50,by=10))
+
+```
+
