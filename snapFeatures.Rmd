@@ -10,7 +10,7 @@ knitr::opts_chunk$set(echo = FALSE)
 
 # R 3.5.1
 library(tidyverse)
-library(sf)
+library(sf) # library(devtools); install_github("r-spatial/sf") # sf 0.7.2
 library(leaflet)
 library(mapview)
 
@@ -117,10 +117,28 @@ snapList_allBRRO <- readRDS('data/snapList_allBRRO.RDS')
 ```{r investigate bigger allBRRO}
 # sites that didnt find a segment within 100 m
 failBRRO <- snapList_allBRRO[['tbl_output']]
-nrow(failBRRO)/nrow(BRRO_Sites_sf)
 successBRRO <- snapList_allBRRO[['sf_output']]
-length(unique(successBRRO$`Point Unique Identifier`))
-
+print(paste("number of sites that didn't snap:",nrow(failBRRO)))
+print(paste("number of sites that snapped:",length(unique(successBRRO$`Point Unique Identifier`))))
+print(paste("percent of sites that didn't snap:",(nrow(failBRRO)/nrow(BRRO_Sites_sf))*100))
 ```
 
 Not bad, 26% failure rate.
+
+Now a function to identify stations in the success side that snapped to more than one segment.
+
+```{r snapChecker Function}
+# for testing
+#successDataFrame <- snapList_allBRRO[['sf_output']]
+
+snapCheck <- function(successDataFrame){
+  #distinct
+  success
+  successDataFrame %>%
+    distinct.sf(`Point Unique Identifier`)
+    distinct(`Point Unique Identifier`)
+  
+}
+
+```
+
