@@ -110,6 +110,9 @@ BRRO_Sites_sf <- filter(conventionals, Deq_Region == "Blue Ridge") %>%
   st_transform( st_crs(newWQS)) # now change crs to Albers to make snapping work
 
 snapList_allBRRO <- snap_Points_to_Feature_List(BRRO_Sites_sf,'FDT_STA_ID',newWQS, seq(10,50,by=10))
+saveRDS(snapList_allBRRO, 'data/snapList_allBRRO.RDS')
 
-```
+```[1] "Snapping Point 853 of 860"
+[1] "Snapping Point 854 of 860"
+
 
