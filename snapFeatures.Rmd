@@ -132,13 +132,17 @@ Now a function to identify stations in the success side that snapped to more tha
 #successDataFrame <- snapList_allBRRO[['sf_output']]
 
 snapCheck <- function(successDataFrame){
-  #distinct
-  success
   successDataFrame %>%
-    distinct.sf(`Point Unique Identifier`)
-    distinct(`Point Unique Identifier`)
-  
-}
+    group_by(`Point Unique Identifier`) %>%
+    filter(n()>1)
+  }
+needReview <- snapCheck(snapList_allBRRO[['sf_output']])
+```
 
+
+```{r}
+successDataFrame1 <- successDataFrame %>%
+    st_set_geometry(NULL) %>%
+    distinct(`Point Unique Identifier`, .keep_all = TRUE)
 ```
 
