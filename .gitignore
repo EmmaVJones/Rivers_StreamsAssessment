@@ -5,6 +5,9 @@
 *.mdb
 *.docx
 *.Rproj
+.Rproj
 Guidance/
 data/
 GIS/
+workingDatasets/
+conventionals08152018EVJ.csv
