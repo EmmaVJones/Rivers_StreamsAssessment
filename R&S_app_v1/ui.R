@@ -12,10 +12,36 @@ shinyUI(fluidPage(theme="yeti.css",
                       id = "main_content",
                       navbarPage("VDEQ 2020 Rivers and Streams Assessment Tool",
                                  tabPanel('Data Upload',
-                                          p("This tab will walk users through uploading
-                                            data back to the app. This data may include
-                                            Roger's raw data (conventionals), WQS shapefile,
-                                            comment files from previous sessions, etc.")),
+                                          h3('Tool Overview'),
+                                          p("The Rivers and Streams Assessment Tool is designed to expedite analysis, assessment
+                                            decisions, and quality assurance/quality control (QA/QC) procedures for Virginia's
+                                            contribution to the 2020 Integrated Report (IR). The data window analyzed covers 
+                                            January 1, 2013 to December 31, 2018. Tool users can expect significant time savings
+                                            on repetitive procedures including: raw data organization from disparate databases, 
+                                            geospatial organization of stations by assessment unit, standard/criteria calculations, 
+                                            and data visualization."),
+                                          br(),br(),br(),
+                                          h3('Tool Inputs'),
+                                          p('In order to reduce processing time and facilitate peristent data storage, users must
+                                            upload certain datasets that follow a specified template. These include their regional
+                                            Stations Table 2.0 and Comment Files from any previous analysis session.'),
+                                          h5('Stations Table 2.0'),
+                                          helpText('This dataset is derived before any Rivers and Streams Assessment Tool analysis 
+                                                   procedures can commence using the ',span(strong('XXXXXX TOOL.')), 'After completing
+                                                   the requisite analyses from the ',span(strong('XXXXXX TOOL')),'once, users can 
+                                                   upload their results to the Rivers and Streams Assessment Tool each time they open
+                                                   the tool for analysis.'),
+                                          fileInput('stationsTable','Choose most recent comment file.',
+                                                    accept = c(".RDS")),
+                                          h5('Comment Files'),
+                                          helpText('Comment files are generated each time an assessor utlizes the Rivers and Streams 
+                                                   Assessment Tool comment fields. Though entering information into these fields is not
+                                                   necessary to complete any assessment actions, it is a best practice to include
+                                                   information relevant to assessment decisions or historical information for archiving
+                                                   in a single location. These files will be transferred with subsequent Rivers and 
+                                                   Streams Assessment Tool updates across IR windows to maintain regional assessment records.'),
+                                          fileInput('commentFile','Choose most recent comment file.',
+                                                    accept = c(".csv"))),
                                  tabPanel('Watershed Selection',
                                           sidebarPanel(
                                             h3("Various drop downs to choose VAHUC6 assessor wants to start with"),
