@@ -1,31 +1,11 @@
 # Run in R 3.5.1
 source('global.R')
 
+#assessmentLayer <- st_read('GIS/AssessmentRegions_VA84_basins.shp') %>%
+#  st_transform( st_crs(4326))
 
-fakeConventionals <- read.csv('exampleData/fakeConventionals.csv') %>%
-  dplyr::select(FDT_STA_ID, STA_DESC, Basin, Huc6_Huc_8_Name,
-          Huc6_Name, Huc6_Vahu5, Huc6_Vahu6) %>%
-  distinct(FDT_STA_ID, .keep_all = T)
-
-x <- data.frame(x = c('StationID','Station Description',
-                      'Level 1 Code', 'Level 3 Code', 'SPG Code', 
-                      'ID305B_1', 'ID305B_3',
-                      'ID305B_3','Station Type 1', 
-                      'Station Type 2', 'Station Type 3', 'WQS Section',
-                      'WQS Class', 'Special Standards',
-                      'WQS Description'),
-                y = c('XXXXXX', 'Route XXX bridge','STREAM','AWTSHD', 'AW', 
-                      'VAW-J01R_JMS01A00','VAW-J01R_JMS01A01',
-                      'VAW-J01R_JMS01A02','AW',  'B',  'PA', '2','IV','PWS',
-                      'James River from blah to blah'))
-names(x) <- c(' ',"  ")
-
-
-
-assessmentLayer <- st_read('GIS/AssessmentRegions_VA84_basins.shp')
-
-
-
+assessmentLayer <- readRDS('data/VAHU6.RDS')
+assessmentLayer_sp <- rgdal::readOGR('GIS','AssessmentRegions_VA84_basins')
 
 shinyServer(function(input, output, session) {
   
@@ -51,7 +31,7 @@ shinyServer(function(input, output, session) {
   ## Watershed Selection Tab
   
   # Query VAHUC6's By Selectize arguments
-  the_data <- reactive({assessmentLayer %>%  st_set_geometry(NULL) })
+  the_data <- reactive({assessmentLayer })#%>%  st_set_geometry(NULL) })
   region_filter <- shiny::callModule(dynamicSelect, "DEQregionSelection", the_data, "ASSESS_REG" )
   basin_filter <- shiny::callModule(dynamicSelect, "basinSelection", region_filter, "Basin" )
   huc6_filter <- shiny::callModule(dynamicSelect, "HUC6Selection", basin_filter, "VAHU6" )
@@ -62,17 +42,31 @@ shinyServer(function(input, output, session) {
     table
   })
   
-  output$VAmap <- renderLeaflet({
-    
-    leaflet() %>% setView(-79.2,37.7,zoom=7)%>%
-      addProviderTiles(providers$OpenStreetMap,group='Open Street Map')%>%
-      addProviderTiles(providers$Esri.WorldImagery,group='Esri World Imagery')%>%
-      addProviderTiles(providers$Stamen.TerrainBackground,group='Stamen Terrain Background')%>%
-      addLayersControl(baseGroups=c('Open Street Map','Esri World Imagery','Stamen Terrain Background'),
-                       #overlayGroups=c('Lake Monitoring Stations','All Lake Monitoring Stations'),
-                       options=layersControlOptions(collapsed=T),
-                       position='topleft')%>%
-      #addHomeButton(extent(lakeStations_shp),"All Lake Monitoring Stations")%>%
-      mapview::addMouseCoordinates(style='basic')
-  })
+ 
+  # Station Map
+  shiny::callModule(HUCmap, "VAmap", huc6_filter, assessmentLayer_sp)
+ 
 })
+
+
+# Station Map, didn't use module bc could not figure it out with sf 
+#output$VAmap <- renderLeaflet({
+#  names(st_geometry(assessmentLayer)) = NULL
+
+#  leaflet(assessmentLayer) %>% setView(-79.2,37.7,zoom=7)%>%
+#    addProviderTiles(providers$OpenStreetMap,group='Open Street Map')%>%
+#    addProviderTiles(providers$Esri.WorldImagery,group='Esri World Imagery')%>%
+#    addProviderTiles(providers$Stamen.TerrainBackground,group='Stamen Terrain Background')%>%
+#    addPolygons(data=assessmentLayer,color='yellow',fill=0.1,stroke=0.1,group="Virginia HUC6",
+#                popup = popupTable(assessmentLayer,zcol=c(1,2,5,13,22)))
+#    addLayersControl(baseGroups=c('Open Street Map','Esri World Imagery','Stamen Terrain Background'),
+#                     overlayGroups=c("Virginia HUC6"),
+#                     options=layersControlOptions(collapsed=T),
+#                     position='topleft')%>%
+#    mapview::addMouseCoordinates(style='basic')
+#  
+#})
+
+
+
+

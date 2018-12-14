@@ -11,6 +11,8 @@ library(FSA)
 
 # Bring in modules
 source('appModules/multipleDependentSelectizeArguments.R')
+source('appModules/map.R')
+
 
 # Loading screen
 load_data <- function() {
