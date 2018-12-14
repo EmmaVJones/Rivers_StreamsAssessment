@@ -93,7 +93,7 @@ tooMany <- snapCheck(snapList_BRRO[['sf_output']])
 
 sites <- filter(snapList_BRRO[['sf_output']], !(`Point Unique Identifier` %in% tooMany$`Point Unique Identifier`))
 
-#saveRDS(sites,'workingDatasets/BRROsites_ROA.RDS')
+
 ```
 
 Now join those few columns from conventionals that we want with VAHU info to make new StationTable dataset. Lose stream segment geometry bc it is not needed for the rest of app.
@@ -106,5 +106,7 @@ sites <- mutate(sites, FDT_STA_ID = `Point Unique Identifier`) %>%
   left_join(BRRO_Sites, by = 'FDT_STA_ID') %>%
   st_set_geometry(NULL) %>%
   select(FDT_STA_ID, everything(), -c(`Point Unique Identifier`))
+
+#saveRDS(sites,'workingDatasets/BRROsites_ROA.RDS')
 ```
 
