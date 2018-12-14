@@ -5,9 +5,9 @@ library(mapview)
 library(tidyverse)
 library(sf)
 library(plotly)
-library(raster)
+#library(raster)
 library(DT)
-library(FSA)
+#library(FSA)
 
 # Bring in modules
 source('appModules/multipleDependentSelectizeArguments.R')

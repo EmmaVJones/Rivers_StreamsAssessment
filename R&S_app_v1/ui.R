@@ -50,7 +50,7 @@ shinyUI(fluidPage(theme="yeti.css",
                                             
                                             actionButton('selectAU','Select Watershed for analysis')),
                                           mainPanel(
-                                            tableOutput("table"),
+                                            verbatimTextOutput("table"),
                                             HUCmapUI("VAmap")#,
                                             #leafletOutput('VAmap', height =400, width = 650)
                                           )

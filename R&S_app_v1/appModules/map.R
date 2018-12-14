@@ -1,4 +1,8 @@
 # Map 
+
+# used sp and s4 objects bc could not figure out how to get sf to work nicely in modules
+
+
 HUCmapUI <- function(id){
   ns <- NS(id)
   tagList(
@@ -6,37 +10,57 @@ HUCmapUI <- function(id){
     leafletOutput(ns("map"), height =400, width = 650))
 }
 
-HUCmap <- function(input, output, session, userDataset, userDataset_sp){
+HUCmap <- function(input, output, session, userDataset_sp, allHUCS_sp){
   ns <- session$ns
   
-  HUC6 <- reactive({userDataset_sp[userDataset_sp$VAHU6== userDataset()$VAHU6,]})
-  
-  output$test <- renderTable({
-    HUC6()
-  })
-  
+
   
   output$map <- renderLeaflet({
-      
+    
     leaflet(userDataset_sp) %>% setView(-79.2,37.7,zoom=7)%>%
       addProviderTiles(providers$OpenStreetMap,group='Open Street Map')%>%
-      #addProviderTiles(providers$Esri.WorldImagery,group='Esri World Imagery')%>%
-      #addProviderTiles(providers$Stamen.TerrainBackground,group='Stamen Terrain Background')%>%
-      addPolygons(data=HUC6(),color='yellow',fillColor="orange",fillOpacity = 1, 
-                  opacity=1, weight=2, stroke=TRUE, group="Selected VAHU6",
-                  popup=popupTable(HUC6()@data,zcol=c(1,2))) %>%
-    
-      addPolygons(data=userDataset_sp,color='black',fillColor="gray",fillOpacity = 0.1, 
-                  opacity=1, weight=2, stroke=TRUE, group="Virginia VAHU6",
-                       popup=popupTable(userDataset_sp,zcol=c(1,2))) %>% hideGroup("Virginia VAHU6") %>%
-      #addCircleMarkers(data=lakeStations_shp,radius=3,color='orange',fillColor="orange",fillOpacity = 1,stroke=0,
-      #                 group="All Lake Monitoring Stations",layerId=~lakeStations_shp@data$DD_LAT,
-      #                 popup=popupTable(lakeStations_shp@data,zcol=c(1,6,7,13,14,16)))%>%hideGroup('All Lake Monitoring Stations')%>%
+      addProviderTiles(providers$Esri.WorldImagery,group='Esri World Imagery')%>%
+      addProviderTiles(providers$Stamen.TerrainBackground,group='Stamen Terrain Background')%>%
+      
+      #addPolygons(data=userDataset_sp,color='black',fill=0.1,stroke=0.1,group="Virginia HUC61",
+      #            popup = popupTable(userDataset_sp,zcol=c(1,2,5,13,22))) %>% 
+      
+      addPolygons(data=allHUCS_sp,color='black',fill=0.1,stroke=0.1,group="Virginia HUC6",
+                  popup = popupTable(allHUCS_sp,zcol=c(1,2,5,13,22))) %>% hideGroup('Virginia HUC6') %>%
       addLayersControl(baseGroups=c('Open Street Map','Esri World Imagery','Stamen Terrain Background'),
-                       overlayGroups=c('Selected VAHU6','Virginia HUC6'),
+                       overlayGroups=c('Virginia HUC61','Virginia HUC6'),
                        options=layersControlOptions(collapsed=T),
                        position='topleft')%>%
       #addHomeButton(extent(lakeStations_shp),"All Lake Monitoring Stations")%>%
       mapview::addMouseCoordinates(style='basic')
   })
+  
+  observe({
+    leafletProxy('map')  %>% clearControls() %>%
+      addPolygons(data=userDataset_sp,color='black',fill=0.1,stroke=0.1,group="Virginia HUC61",
+                  popup = popupTable(userDataset_sp,zcol=c(1,2,5,13,22))) %>% 
+      addLayersControl(baseGroups=c('Open Street Map','Esri World Imagery','Stamen Terrain Background'),
+                           overlayGroups=c("Selected HUC6",'Virginia HUC6'),
+                           options=layersControlOptions(collapsed=T),position='topleft')})
+    
+  
+  
+  
 }
+
+#huc6_filter <- assessmentLayer[1,]
+#huc6_filter <- 'JM01'
+
+#ui <- fluidPage(
+#  HUCmapUI('VAmap')
+#)
+#server <- function(input,output,session){
+#  HUC6 <- reactive({assessmentLayer_sp[assessmentLayer_sp$VAHU6 ==  huc6_filter,]})
+  
+  #output$test <- renderTable({
+   # HUC6()
+  #})
+  
+#  callModule(HUCmap, 'VAmap', HUC6(), assessmentLayer_sp)
+#}
+#shinyApp(ui, server)

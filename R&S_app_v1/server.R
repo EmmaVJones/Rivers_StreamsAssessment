@@ -4,8 +4,8 @@ source('global.R')
 #assessmentLayer <- st_read('GIS/AssessmentRegions_VA84_basins.shp') %>%
 #  st_transform( st_crs(4326))
 
-assessmentLayer <- readRDS('data/VAHU6.RDS')
-assessmentLayer_sp <- rgdal::readOGR('GIS','AssessmentRegions_VA84_basins')
+#assessmentLayer <- readRDS('data/VAHU6.RDS')
+#assessmentLayer_sp <- rgdal::readOGR('GIS','AssessmentRegions_VA84_basins') # use S4 object bc sf didn't play nicely with modules
 
 shinyServer(function(input, output, session) {
   
@@ -31,20 +31,20 @@ shinyServer(function(input, output, session) {
   ## Watershed Selection Tab
   
   # Query VAHUC6's By Selectize arguments
-  the_data <- reactive({assessmentLayer })#%>%  st_set_geometry(NULL) })
+  the_data <- reactive({assessmentLayer})
   region_filter <- shiny::callModule(dynamicSelect, "DEQregionSelection", the_data, "ASSESS_REG" )
   basin_filter <- shiny::callModule(dynamicSelect, "basinSelection", region_filter, "Basin" )
   huc6_filter <- shiny::callModule(dynamicSelect, "HUC6Selection", basin_filter, "VAHU6" )
   
   
-  output$table <- renderTable({
-    table <- huc6_filter()
-    table
+  output$table <- renderPrint({
+    huc6_filter_sp()
   })
   
+  huc6_filter_sp <- reactive({assessmentLayer_sp[assessmentLayer_sp$VAHU6 ==  huc6_filter()$VAHU6,]})
  
   # Station Map
-  shiny::callModule(HUCmap, "VAmap", huc6_filter, assessmentLayer_sp)
+  shiny::callModule(HUCmap, "VAmap", huc6_filter_sp(), assessmentLayer_sp)
  
 })
 
