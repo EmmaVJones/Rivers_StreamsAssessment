@@ -54,17 +54,43 @@ shinyServer(function(input, output, session) {
   the_data <- reactive({assessmentLayer %>%  st_set_geometry(NULL) })
   region_filter <- shiny::callModule(dynamicSelect, "DEQregionSelection", the_data, "ASSESS_REG" )
   basin_filter <- shiny::callModule(dynamicSelect, "basinSelection", region_filter, "Basin" )
-  huc6_filter <- shiny::callModule(dynamicSelect, "HUC6Selection", basin_filter, "VAHU6" )
-  
   
   output$table <- renderTable({
-    table <- huc6_filter()
+    table <- region_filter()
     table
   })
   
   output$VAmap <- renderLeaflet({
     
     leaflet() %>% setView(-79.2,37.7,zoom=7)%>%
+      addProviderTiles(providers$OpenStreetMap,group='Open Street Map')%>%
+      addProviderTiles(providers$Esri.WorldImagery,group='Esri World Imagery')%>%
+      addProviderTiles(providers$Stamen.TerrainBackground,group='Stamen Terrain Background')%>%
+      addLayersControl(baseGroups=c('Open Street Map','Esri World Imagery','Stamen Terrain Background'),
+                       #overlayGroups=c('Lake Monitoring Stations','All Lake Monitoring Stations'),
+                       options=layersControlOptions(collapsed=T),
+                       position='topleft')%>%
+      #addHomeButton(extent(lakeStations_shp),"All Lake Monitoring Stations")%>%
+      mapview::addMouseCoordinates(style='basic')
+  })
+  
+  
+  output$allStationsInVAHUC6 <- DT::renderDataTable({
+    DT::datatable(fakeConventionals, escape=F, rownames = F,
+                  options=list(dom='Bt',scrollX = TRUE,pageLength = nrow(x), scrollY = "200px"))})
+  
+  ## Individual Station Review Tab
+  
+  output$stationInfo <- DT::renderDataTable({
+    
+    DT::datatable(x, escape=F, rownames = F,
+                  options=list(dom='Bt',scrollX = TRUE,pageLength = nrow(x), scrollY = "200px"))
+  })
+  
+  
+  output$stationMap <- renderLeaflet({
+    
+    leaflet() %>% setView(-79.2,37.7,zoom=12)%>%
       addProviderTiles(providers$OpenStreetMap,group='Open Street Map')%>%
       addProviderTiles(providers$Esri.WorldImagery,group='Esri World Imagery')%>%
       addProviderTiles(providers$Stamen.TerrainBackground,group='Stamen Terrain Background')%>%

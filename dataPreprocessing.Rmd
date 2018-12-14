@@ -110,3 +110,82 @@ sites <- mutate(sites, FDT_STA_ID = `Point Unique Identifier`) %>%
 #saveRDS(sites,'workingDatasets/BRROsites_ROA.RDS')
 ```
 
+
+### VAHU6 Statewide by DEQ Region
+I need a dataset that neatly organizes all VAHUC6's by DEQ region and subsequent basins to call into app in non spatial form to speed app processing of the multiple selectize arguments.
+
+```{r VAHU6}
+assessmentLayer <- st_read('R&S_app_v1/GIS/AssessmentRegions_VA84.shp')
+conventionals <- read_excel('workingDatasets/CONVENTIONALS_20171010.xlsx',sheet = 'CONVENTIONALS')
+
+VAHU6 <- select(assessmentLayer,VAHU6,ASSESS_REG,VaName) %>%
+  st_set_geometry(NULL) %>%
+  distinct(VAHU6, .keep_all = TRUE)
+
+basin <- select(conventionals,Deq_Region,Basin,Huc6_Vahu5,Huc6_Vahu6)%>%
+  distinct(Huc6_Vahu6, .keep_all = TRUE) %>%
+  mutate(VAHU6=Huc6_Vahu6)
+
+
+basinByCode <- function(x){
+  z=NA
+  for(i in 1:length(x)){
+    if(x[i] == 'AO'){z[i] <- ('Ches. Bay and Small Coastal Basin')}
+  if(x[i] == 'AS'){z[i] <- ('Chowan and Dismal Swamp River Basin')}
+  if(x[i] == 'BS'){z[i] <- ('Tennessee and Big Sandy River Basin')}
+  if(x[i] == 'CB'){z[i] <- ('Ches. Bay and Small Coastal Basin')}
+  if(x[i] == 'CL'){z[i] <- ('Chowan and Dismal Swamp River Basin')}
+  if(x[i] == 'CM'){z[i] <- ('Chowan and Dismal Swamp River Basin')}
+  if(x[i] == 'CU'){z[i] <- ('Chowan and Dismal Swamp River Basin')}
+  if(x[i] == 'JA'){z[i] <- ('James River Basin')}
+  if(x[i] == 'JL'){z[i] <- ('James River Basin')}
+  if(x[i] == 'JM'){z[i] <- ('James River Basin')}
+  if(x[i] == 'JR'){z[i] <- ('James River Basin')}
+  if(x[i] == 'JU'){z[i] <- ('James River Basin')}
+  if(x[i] == 'NE'){z[i] <- ('New River Basin')}
+  if(x[i] == 'PL'){z[i] <- ('Potomac River Basin')}
+  if(x[i] == 'PS'){z[i] <- ('Shenandoah River Basin')}
+  if(x[i] == 'PU'){z[i] <- ('Shenandoah River Basin')}
+  if(x[i] == 'RA'){z[i] <- ('Rappahannock River Basin')}
+  if(x[i] == 'RD'){z[i] <- ('Roanoke River Basin')}
+  if(x[i] == 'RL'){z[i] <- ('Roanoke River Basin')}
+  if(x[i] == 'RU'){z[i] <- ('Roanoke River Basin')}
+  if(x[i] == 'TC'){z[i] <- ('Tennessee and Big Sandy River Basin')}
+  if(x[i] == 'TH'){z[i] <- ('Tennessee and Big Sandy River Basin')}
+  if(x[i] == 'TP'){z[i] <- ('Tennessee and Big Sandy River Basin')}
+  if(x[i] == 'YA'){z[i] <- ('Roanoke River Basin')}
+  if(x[i] == 'YO'){z[i] <- ('York River Basin')}
+  }
+  return(z)
+}
+
+regionFix <- function(x){
+  z=NA
+  for(i in 1:length(x)){
+    if(x[i] == 'BRRO'){z[i] <- ('Blue Ridge')}
+  if(x[i] == 'PRO'){z[i] <- ('Piedmont')}
+  if(x[i] == 'TRO'){z[i] <- ('Tidewater')}
+  if(x[i] == 'SWRO'){z[i] <- ('Southwest')}
+  if(x[i] == 'NRO'){z[i] <- ('Northern')}
+  if(x[i] == 'VRO'){z[i] <- ('Valley')}
+  if(x[i] == 'CO'){z[i] <- (NA)}
+  }
+  return(z)
+}
+
+VAHU61 <- left_join(VAHU6,basin, by='VAHU6') %>%
+  mutate(Basin_= as.character(substr(VAHU6,1,2)),
+         Basin1 = basinByCode(Basin_),
+         Deq_Region= regionFix(ASSESS_REG))%>%
+  mutate(Basin=Basin1) %>%
+  select(-c(Basin_,Basin1))
+
+VAHU62 <- select(VAHU61, VAHU6,Basin)%>%
+  distinct(VAHU6, .keep_all = TRUE)
+
+# now add basin info to assessment spatial layer
+assessmentLayer1 <- left_join(assessmentLayer, VAHU62, by = 'VAHU6')
+
+st_write(assessmentLayer1, 'R&S_app_v1/GIS/AssessmentRegions_VA84_basins.shp')
+```
+
