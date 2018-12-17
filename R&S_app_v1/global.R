@@ -7,6 +7,7 @@ library(sf)
 library(plotly)
 #library(raster)
 library(DT)
+library(readxl)
 #library(FSA)
 
 # Bring in modules

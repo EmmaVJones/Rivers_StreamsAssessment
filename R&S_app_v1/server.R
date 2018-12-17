@@ -3,9 +3,8 @@ source('global.R')
 
 #assessmentLayer <- st_read('GIS/AssessmentRegions_VA84_basins.shp') %>%
 #  st_transform( st_crs(4326))
-
-#assessmentLayer <- readRDS('data/VAHU6.RDS')
-#assessmentLayer_sp <- rgdal::readOGR('GIS','AssessmentRegions_VA84_basins') # use S4 object bc sf didn't play nicely with modules
+#stationTable <- readRDS('data/BRROsites_ROA.RDS')
+#conventionals <- read_excel('data/CONVENTIONALS_20171010.xlsx')
 
 shinyServer(function(input, output, session) {
   
@@ -24,7 +23,17 @@ shinyServer(function(input, output, session) {
   comments <- reactive({
     req(input$commentFile)
     inFile <- input$commentFile
-    read_csv(inFile$datapath)
+    read_csv(inFile$datapath) })
+  
+  output$stationTableMissingStations <- DT::renderDataTable({
+    req(stationTable())
+    # decide which region data was input from
+    Region <- unique(stationTable()$Deq_Region)
+    z <- filter(conventionals, Deq_Region == 'Blue Ridge') %>%
+      distinct(FDT_STA_ID, .keep_all = TRUE) %>%
+      filter(FDT_STA_ID %in% stationTable()$FDT_STA_ID) %>%
+      select(FDT_STA_ID:FDT_SPG_CODE, STA_LV2_CODE:STA_CBP_NAME)
+    DT::datatable(z,rownames = FALSE, options= list(scrollX = TRUE, pageLength = 20, scrollY = "200px", dom='Bt'))
   })
   
   
@@ -43,8 +52,40 @@ shinyServer(function(input, output, session) {
                  popup= popupTable(huc6_filter(), zcol=c('VAHU6',"VaName","VAHU5","ASSESS_REG"))) + 
       mapview(huc6_filter(), color = 'yellow',lwd= 5, label= huc6_filter()$VAHU6, layer.name = c('Selected HUC6'),
               popup= popupTable(huc6_filter(), zcol=c('VAHU6',"VaName","VAHU5","ASSESS_REG")))
-    m@map %>% setView(st_bbox(huc6_filter())$xmax[[1]],st_bbox(huc6_filter())$ymax[[1]],zoom = 9)
+    m@map %>% setView(st_bbox(huc6_filter())$xmax[[1]],st_bbox(huc6_filter())$ymax[[1]],zoom = 9) })
+  
+  # Table of Stations within Selected AU
+  output$AUstationSummary <- DT::renderDataTable({
+    req(region_filter(), basin_filter(), huc6_filter())
+    z <- filter(conventionals, Huc6_Vahu6 %in% huc6_filter()$VAHU6) %>%
+      distinct(FDT_STA_ID, .keep_all = TRUE) %>%
+      select(FDT_STA_ID:FDT_SPG_CODE, STA_LV2_CODE:STA_CBP_NAME)
+    DT::datatable(z, rownames = FALSE, options= list(scrollX = TRUE, pageLength = 20, scrollY = "300px", dom='Bt'))  })
+  
+  
+  ## Station Review Tab
+  # Show selected AU
+  output$selectedAU <- DT::renderDataTable({
+    datatable(huc6_filter() %>% st_set_geometry(NULL) %>% select(VAHU6, VaName, Basin),
+              rownames = FALSE, options= list(pageLength = 20, scrollY = "35px", dom='Bt'))})
+  
+  # Pull Conventionals data for selected AU on click
+  conventionals_AU <- eventReactive( input$pullAUdata, {
+    filter(conventionals, Huc6_Vahu6 %in% huc6_filter()$VAHU6) })
+  
+  output$stationSelection_ <- renderUI({
+    req(conventionals_AU())
+    selectInput('stationSelection', 'Station Selection', choices = unique(conventionals_AU()$FDT_STA_ID))  })
+  
+  stationData <- eventReactive( input$stationSelection, {
+    filter(conventionals_AU(), FDT_STA_ID %in% input$stationSelection) 
   })
+  
+  output$table <- renderPrint({
+    req(stationData())
+    stationData()  })
+  
+  
 })
 
 

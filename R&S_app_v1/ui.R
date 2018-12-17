@@ -10,6 +10,7 @@ shinyUI(fluidPage(theme="yeti.css",
                   hidden(
                     div(
                       id = "main_content",
+                      # suppress error messages as data loads, hacky
                       tags$style(type="text/css",
                                  ".shiny-output-error { visibility: hidden; }",
                                  ".shiny-output-error:before { visibility: hidden; }"
@@ -45,18 +46,33 @@ shinyUI(fluidPage(theme="yeti.css",
                                 #                   in a single location. These files will be transferred with subsequent Rivers and 
                                 #                   Streams Assessment Tool updates across IR windows to maintain regional assessment records.'),
                                 #          fileInput('commentFile','Choose most recent comment file.',
-                                #                    accept = c(".csv"))),
+                                #                    accept = c(".csv")),
+                                #          hr(),br(),
+                                #          h4('Station Table QA'),
+                                #          helpText('This automated analysis section highlights any stations from the Conventionals dataset
+                                #                   that do not have appropriate Station Table 2.0 information.',
+                                #                   span(strong('Failure to address these stations will guarantee they will not be represented
+                                #                               in subsequent analyses by the Rivers and Streams Assessment tool.'))),
+                                #          DT::dataTableOutput('stationTableMissingStations')),
                                  tabPanel('Watershed Selection',
                                           sidebarPanel(
                                             dynamicSelectInput("DEQregionSelection", "Select DEQ Assessment Region", multiple = FALSE),
                                             dynamicSelectInput("basinSelection", "Select Major Basin", multiple = FALSE),
-                                            dynamicSelectInput("HUC6Selection", "Select Major Basin", multiple = FALSE),
-                                            
-                                            actionButton('selectAU','Select Watershed for analysis')),
+                                            dynamicSelectInput("HUC6Selection", "Select Major Basin", multiple = FALSE)),
                                           mainPanel(
-                                            verbatimTextOutput("table"),
-                                            leafletOutput('VAmap')
+                                            leafletOutput('VAmap'),
+                                            br(),
+                                            DT::dataTableOutput('AUstationSummary')
                                           )
-                                 )
+                                 ),
+                                tabPanel('Station Review',
+                                         fluidRow(column(9, DT::dataTableOutput('selectedAU')),
+                                                  column(3,br(),actionButton('pullAUdata','Select Watershed for analysis'))),
+                                         hr(),
+                                         uiOutput('stationSelection_'),
+                                         verbatimTextOutput("table"))
                       )))
 ))
+
+
+#verbatimTextOutput("table"),
