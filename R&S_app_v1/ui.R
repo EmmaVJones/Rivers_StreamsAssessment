@@ -10,6 +10,10 @@ shinyUI(fluidPage(theme="yeti.css",
                   hidden(
                     div(
                       id = "main_content",
+                      tags$style(type="text/css",
+                                 ".shiny-output-error { visibility: hidden; }",
+                                 ".shiny-output-error:before { visibility: hidden; }"
+                      ),
                       navbarPage("VDEQ 2020 Rivers and Streams Assessment Tool",
                                  #tabPanel('Data Upload',
                                 #          h3('Tool Overview'),
@@ -51,8 +55,7 @@ shinyUI(fluidPage(theme="yeti.css",
                                             actionButton('selectAU','Select Watershed for analysis')),
                                           mainPanel(
                                             verbatimTextOutput("table"),
-                                            HUCmapUI("VAmap")#,
-                                            #leafletOutput('VAmap', height =400, width = 650)
+                                            leafletOutput('VAmap')
                                           )
                                  )
                       )))

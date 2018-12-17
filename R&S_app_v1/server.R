@@ -36,16 +36,15 @@ shinyServer(function(input, output, session) {
   basin_filter <- shiny::callModule(dynamicSelect, "basinSelection", region_filter, "Basin" )
   huc6_filter <- shiny::callModule(dynamicSelect, "HUC6Selection", basin_filter, "VAHU6" )
   
-  
-  output$table <- renderPrint({
-    huc6_filter_sp()
-  })
-  
-  huc6_filter_sp <- reactive({assessmentLayer_sp[assessmentLayer_sp$VAHU6 ==  huc6_filter()$VAHU6,]})
- 
   # Station Map
-  shiny::callModule(HUCmap, "VAmap", huc6_filter_sp(), assessmentLayer_sp)
- 
+  output$VAmap <- renderLeaflet({
+    req(region_filter(), basin_filter(), huc6_filter())
+    m <- mapview(basin_filter(),label= basin_filter()$VAHU6, layer.name = 'Basin Chosen',
+                 popup= popupTable(huc6_filter(), zcol=c('VAHU6',"VaName","VAHU5","ASSESS_REG"))) + 
+      mapview(huc6_filter(), color = 'yellow',lwd= 5, label= huc6_filter()$VAHU6, layer.name = c('Selected HUC6'),
+              popup= popupTable(huc6_filter(), zcol=c('VAHU6',"VaName","VAHU5","ASSESS_REG")))
+    m@map %>% setView(st_bbox(huc6_filter())$xmax[[1]],st_bbox(huc6_filter())$ymax[[1]],zoom = 9)
+  })
 })
 
 

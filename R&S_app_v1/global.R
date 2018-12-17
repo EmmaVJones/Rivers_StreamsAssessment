@@ -11,7 +11,7 @@ library(DT)
 
 # Bring in modules
 source('appModules/multipleDependentSelectizeArguments.R')
-source('appModules/map.R')
+#source('appModules/map_mapview_sf.R')
 
 
 # Loading screen

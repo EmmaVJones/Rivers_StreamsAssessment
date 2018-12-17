@@ -8,8 +8,8 @@ ggplot() + geom_sf(data = assessmentLayer)
 
 
 james <- filter(assessmentLayer, Basin == 'James River Basin')
-selectedHUC <- filter(james, VAHU6 == 'JM28') %>%
-  st_centroid() 
+selectedHUC <- filter(james, VAHU6 == 'JM28')# %>%
+ # st_centroid() 
 ggplot() + geom_sf(data = james) + geom_sf(data = selectedHUC, aes(fill = 'yellow'))
   
 m <- mapview(james) + mapview(selectedHUC, color = 'yellow',lwd= 5, layer.name = c('Selected HUC6'))
