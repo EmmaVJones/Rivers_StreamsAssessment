@@ -3,9 +3,9 @@ source('global.R')
 
 #assessmentLayer <- st_read('GIS/AssessmentRegions_VA84_basins.shp') %>%
 #  st_transform( st_crs(4326))
-#stationTable <- readRDS('data/BRROsites_ROA.RDS')
-#stationTable_sf <- readRDS('data/BRROsites_ROA_sf.RDS')
-#conventionals <- read_excel('data/CONVENTIONALS_20171010.xlsx')
+#stationTable <- readRDS('data/BRROsites_ROA_sf.RDS')
+#conventionals <- read_excel('data/CONVENTIONALS_20171010.xlsx') # need to change to read_CSV for final to make sure it runs faster
+#conventionals$FDT_DATE_TIME2 <- as.POSIXct(conventionals$FDT_DATE_TIME, format="%m/%d/%y %H:%M")
 
 shinyServer(function(input, output, session) {
   
@@ -98,6 +98,22 @@ shinyServer(function(input, output, session) {
      mapview(point, color = 'yellow', lwd = 5, label= point$FDT_STA_ID, layer.name = c('Selected Station'))
     map1@map
   })
+  
+  #### Data Sub Tab
+  
+  output$stationRawData <- DT::renderDataTable({ stationData()
+    DT::datatable(stationData(), row.names=FALSE, extensions = 'Buttons', escape=F,
+                  options= list(scrollX = TRUE, pageLength = nrow(stationData()), scrollY = "300px", 
+                                dom='Btf', buttons=list('copy',
+                                                        list(extend='csv',filename=paste('StationData_',paste(input$stationSelection, collapse = "_"),Sys.Date(),sep='')),
+                                                        list(extend='excel',filename=paste('StationData_',paste(input$stationSelection, collapse = "_"),Sys.Date(),sep='')))))})
+  
+  output$stationDataTableRecords <- renderText({
+    req(stationData())
+    paste(nrow(stationData()), 'records were retrieved for',as.character(stationData()$FDT_STA_ID[1]),sep=' ')})
+  output$stationDataTableAssessmentWindow <- renderText({
+    req(stationData())
+    withinAssessmentPeriod(stationData())})
   
   #output$table <- renderPrint({
   #  req(stationData())

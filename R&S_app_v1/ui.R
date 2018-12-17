@@ -75,6 +75,20 @@ shinyUI(fluidPage(theme="yeti.css",
                                                   column(4,h4('Comments:'), 
                                                          textAreaInput('commentBox', label = NULL, height = 275, 
                                                                        placeholder = 'Comments'))),
+                                         hr(),
+                                         tabsetPanel(
+                                           tabPanel('Data',br(),
+                                                    DT::dataTableOutput('stationRawData'),
+                                                    h4('Data Summary'),
+                                                    h5('Records Retrieved in Assessment Unit:'),
+                                                    fluidRow(column(1),column(10,textOutput('stationDataTableRecords'))),
+                                                    h5('Field and Lab Data in Assessment Window:'),
+                                                    fluidRow(column(1),column(10,textOutput('stationDataTableAssessmentWindow'))),br(),br()),
+                                           tabPanel('Temperature',
+                                                    helpText('Review each station using the station visualization section, then 
+                                                              proceed to the bottom of the page to find exceedance rate for the entire assessment unit.', br(),
+                                                             span(strong('NOTE: The temperature exceedance analysis results at the bottom of the page include data
+                                                                         from ALL stations within the assessment unit.'))))),
                                          verbatimTextOutput("table"))
                       )))
 ))
