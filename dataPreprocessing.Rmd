@@ -113,7 +113,56 @@ snapList_sites <- filter(snapList_BRRO[['sf_output']], `Point Unique Identifier`
   select(FDT_STA_ID, everything(), -c(`Point Unique Identifier`))
 #saveRDS(sites,'workingDatasets/BRROsites_ROA.RDS')
 #saveRDS(snapList_sites,'workingDatasets/BRROsites_ROA_sf.RDS')
+snapList_sites <- readRDS('workingDatasets/BRROsites_ROA_sf.RDS')
 ```
+
+
+Now attach appropriate AU's to each stationID that matched with WQS so we can have full picture of what needs assessed at each station.
+
+First, need to grab station table info (draft table form) from U:/305b2018/Stations_Database.accdb and export to csv to make it easy to bring into R. Be sure to grab both BRRO-R and BRRO-L working copies to smash into a single csv. 
+
+```{r smash xlsx}
+L <- read_excel('data/DRAFT_tbl_ir_mon_stations_BRRO_L.xlsx') 
+R <- read_excel('data/DRAFT_tbl_ir_mon_stations_BRRO_R.xlsx')
+
+# fix columns so they match
+needToAdd <- names(R)[!(names(R) %in% names(L))]
+needToAdd2 <- names(L)[!(names(L) %in% names(R))]
+L[needToAdd] <- NA
+R[needToAdd2] <- NA
+
+L2 <- L[,names(R)] 
+AU <- rbind(R,L2)
+
+#saveRDS(AU,'data/BRRO_AU.RDS')
+AU <- readRDS('data/BRRO_AU.RDS') %>%
+  mutate(FDT_STA_ID = STATION_ID)
+```
+
+Now connect spatial file to AU info.
+
+```{r AU attachment}
+snapList_sitesAU <- left_join(snapList_sites,AU, by='FDT_STA_ID') %>%
+  select(FDT_STA_ID:VAHU6,COMMENTS)
+#saveRDS(snapList_sitesAU,'data/snapList_sitesAU.RDS')
+```
+
+But becuse assessors need to update their AU's on the fly (in GIS at present), It is not a good idea to keep this AU data static between station table tool runs. It wouldbe really annoying to assess something, realize you need to change an AU, do so in GIS and ADB, then have to rerun the whole (or even part of) for each AU update. 
+
+So working theory now is that we want to have user upload their REGIONAL assessment unit shapefile that they have been making edits on in GIS and then throw that back to the app to keep moving on assessments. 
+
+Filter out just BRRO from **2016 AU RIVERINE** file. This will need to be updated statewide when we get 2018 IR AU's published.
+
+```{r AUfiltering shapefile}
+AU <- st_read('GIS/va_2016_aus_riverine_WGS84.shp')
+# Just get roanoke AU's for now, not even all BRRO
+
+AU_Roa <- filter(AU, ID305B %in% snapList_sitesAU$ID305B_1 | 
+                   ID305B %in% snapList_sitesAU$ID305B_2 | 
+                   ID305B %in% snapList_sitesAU$ID305B_3)
+st_write(AU_Roa, 'GIS/AU_Roa_WGS84.shp')
+```
+
 
 
 ### VAHU6 Statewide by DEQ Region
