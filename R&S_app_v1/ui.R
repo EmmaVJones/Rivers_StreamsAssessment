@@ -70,6 +70,11 @@ shinyUI(fluidPage(theme="yeti.css",
                                                   column(3,br(),actionButton('pullAUdata','Select Watershed for analysis'))),
                                          hr(),
                                          uiOutput('stationSelection_'),
+                                         fluidRow(column(4, DT::dataTableOutput('stationInfo')),
+                                                  column(4, leafletOutput('stationMap', height = 300, width = 300)),
+                                                  column(4,h4('Comments:'), 
+                                                         textAreaInput('commentBox', label = NULL, height = 275, 
+                                                                       placeholder = 'Comments'))),
                                          verbatimTextOutput("table"))
                       )))
 ))

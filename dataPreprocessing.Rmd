@@ -107,7 +107,12 @@ sites <- mutate(sites, FDT_STA_ID = `Point Unique Identifier`) %>%
   st_set_geometry(NULL) %>%
   select(FDT_STA_ID, everything(), -c(`Point Unique Identifier`))
 
+snapList_sites <- filter(snapList_BRRO[['sf_output']], `Point Unique Identifier` %in% sites$FDT_STA_ID )  %>%
+  mutate(FDT_STA_ID = `Point Unique Identifier`) %>%
+  left_join(BRRO_Sites, by = 'FDT_STA_ID') %>%
+  select(FDT_STA_ID, everything(), -c(`Point Unique Identifier`))
 #saveRDS(sites,'workingDatasets/BRROsites_ROA.RDS')
+#saveRDS(snapList_sites,'workingDatasets/BRROsites_ROA_sf.RDS')
 ```
 
 

@@ -4,6 +4,7 @@ source('global.R')
 #assessmentLayer <- st_read('GIS/AssessmentRegions_VA84_basins.shp') %>%
 #  st_transform( st_crs(4326))
 #stationTable <- readRDS('data/BRROsites_ROA.RDS')
+#stationTable_sf <- readRDS('data/BRROsites_ROA_sf.RDS')
 #conventionals <- read_excel('data/CONVENTIONALS_20171010.xlsx')
 
 shinyServer(function(input, output, session) {
@@ -12,7 +13,7 @@ shinyServer(function(input, output, session) {
   load_data()
   
   ## Data Upload Tab
-  stationTable <- reactive({readRDS('data/BRROsites_ROA.RDS')})
+  stationTable <- reactive({readRDS('data/BRROsites_ROA_sf.RDS')})
   # Where I will go after testing
   #stationTable <- reactive({
   #  req(input$stationsTable)
@@ -73,17 +74,35 @@ shinyServer(function(input, output, session) {
   conventionals_AU <- eventReactive( input$pullAUdata, {
     filter(conventionals, Huc6_Vahu6 %in% huc6_filter()$VAHU6) })
   
-  output$stationSelection_ <- renderUI({
-    req(conventionals_AU())
+  output$stationSelection_ <- renderUI({ req(conventionals_AU())
     selectInput('stationSelection', 'Station Selection', choices = unique(conventionals_AU()$FDT_STA_ID))  })
   
   stationData <- eventReactive( input$stationSelection, {
-    filter(conventionals_AU(), FDT_STA_ID %in% input$stationSelection) 
+    filter(conventionals_AU(), FDT_STA_ID %in% input$stationSelection) })
+  
+  output$stationInfo <- DT::renderDataTable({ req(stationData())
+    z <- filter(stationTable(), FDT_STA_ID == input$stationSelection) %>% st_set_geometry(NULL) %>%
+      t() %>% as.data.frame() %>% rename(`Station Information` = 1)
+    DT::datatable(z, options= list(pageLength = nrow(z), scrollY = "200px", dom='Bt'))  })
+  
+  
+  output$stationMap <- renderLeaflet({
+    req(stationData())
+    point <- select(stationData()[1,],  FDT_STA_ID:FDT_SPG_CODE, STA_LV2_CODE:STA_CBP_NAME ) %>%
+      st_as_sf(coords = c("Longitude", "Latitude"), 
+               remove = F, # don't remove these lat/lon cols from df
+               crs = 4269) # add projection, needs to be geographic for now bc entering lat/lng
+    z <- filter(stationTable(), FDT_STA_ID %in% input$stationSelection)
+    map1 <- mapview(z,label= 'Snapped WQS Stream Segment', layer.name = 'WQS',
+            popup= popupTable(z, zcol=c("FDT_STA_ID","Buffer Distance",'OBJECTID',"GNIS_ID","WATER_NAME"))) + 
+     mapview(point, color = 'yellow', lwd = 5, label= point$FDT_STA_ID, layer.name = c('Selected Station'))
+    map1@map
   })
   
-  output$table <- renderPrint({
-    req(stationData())
-    stationData()  })
+  #output$table <- renderPrint({
+  #  req(stationData())
+  #  stationData()  })
+  
   
   
 })
