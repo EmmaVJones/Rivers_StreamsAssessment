@@ -14,7 +14,6 @@ library(readxl)
 source('appModules/multipleDependentSelectizeArguments.R')
 #source('appModules/map_mapview_sf.R')
 
-
 # Loading screen
 load_data <- function() {
   Sys.sleep(2)

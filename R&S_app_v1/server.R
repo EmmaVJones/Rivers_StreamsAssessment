@@ -1,8 +1,9 @@
 # Run in R 3.5.1
 source('global.R')
+source('AUshapefileLocation.R')
 
 #assessmentLayer <- st_read('GIS/AssessmentRegions_VA84_basins.shp') %>%
-#  st_transform( st_crs(4326))
+#  st_transform( st_crs(4326)) %>% st_zm(regionalAUs)
 #stationTable <- readRDS('data/BRROsites_ROA_sf.RDS')
 #conventionals <- read_excel('data/CONVENTIONALS_20171010.xlsx') # need to change to read_CSV for final to make sure it runs faster
 #conventionals$FDT_DATE_TIME2 <- as.POSIXct(conventionals$FDT_DATE_TIME, format="%m/%d/%y %H:%M")
@@ -11,6 +12,9 @@ shinyServer(function(input, output, session) {
   
   # display the loading feature until data loads into app
   load_data()
+  
+  # Reactive Value to store all user data
+  userData <- reactiveValues()
   
   ## Data Upload Tab
   stationTable <- reactive({readRDS('data/BRROsites_ROA_sf.RDS')})
@@ -25,6 +29,8 @@ shinyServer(function(input, output, session) {
     req(input$commentFile)
     inFile <- input$commentFile
     read_csv(inFile$datapath) })
+  observe(userData$comments <- comments())
+  
   
   output$stationTableMissingStations <- DT::renderDataTable({
     req(stationTable())
@@ -45,24 +51,45 @@ shinyServer(function(input, output, session) {
   region_filter <- shiny::callModule(dynamicSelect, "DEQregionSelection", the_data, "ASSESS_REG" )
   basin_filter <- shiny::callModule(dynamicSelect, "basinSelection", region_filter, "Basin" )
   huc6_filter <- shiny::callModule(dynamicSelect, "HUC6Selection", basin_filter, "VAHU6" )
+  AUs <- reactive({req(huc6_filter(), regionalAUs)
+    suppressWarnings(st_intersection(st_zm(regionalAUs), huc6_filter()))})
+ 
   
   # Station Map
   output$VAmap <- renderLeaflet({
     req(region_filter(), basin_filter(), huc6_filter())
     m <- mapview(basin_filter(),label= basin_filter()$VAHU6, layer.name = 'Basin Chosen',
-                 popup= popupTable(huc6_filter(), zcol=c('VAHU6',"VaName","VAHU5","ASSESS_REG"))) + 
+                 popup= popupTable(basin_filter(), zcol=c('VAHU6',"VaName","VAHU5","ASSESS_REG"))) + 
       mapview(huc6_filter(), color = 'yellow',lwd= 5, label= huc6_filter()$VAHU6, layer.name = c('Selected HUC6'),
               popup= popupTable(huc6_filter(), zcol=c('VAHU6',"VaName","VAHU5","ASSESS_REG")))
     m@map %>% setView(st_bbox(huc6_filter())$xmax[[1]],st_bbox(huc6_filter())$ymax[[1]],zoom = 9) })
   
-  # Table of Stations within Selected AU
-  output$AUstationSummary <- DT::renderDataTable({
+  # Table of AUs and Stations within Selected VAHU6
+  output$AUSummary <-  DT::renderDataTable({ req(regionalAUs,AUs())
+    DT::datatable(AUs() %>% st_set_geometry(NULL), rownames = FALSE, 
+                  options= list(scrollX = TRUE, pageLength = nrow(AUs()), scrollY = "300px", dom='Bt')) 
+  })
+  
+  output$stationSummary <- DT::renderDataTable({
     req(region_filter(), basin_filter(), huc6_filter())
     z <- filter(conventionals, Huc6_Vahu6 %in% huc6_filter()$VAHU6) %>%
       distinct(FDT_STA_ID, .keep_all = TRUE) %>%
       select(FDT_STA_ID:FDT_SPG_CODE, STA_LV2_CODE:STA_CBP_NAME)
-    DT::datatable(z, rownames = FALSE, options= list(scrollX = TRUE, pageLength = 20, scrollY = "300px", dom='Bt'))  })
+    DT::datatable(z, rownames = FALSE, options= list(scrollX = TRUE, pageLength = nrow(z), scrollY = "300px", dom='Bt'))  })
   
+  observeEvent(input$reviewAUs,{
+    showModal(modalDialog(
+      title="Preview Assessment Units for Selected VAHU6",
+      leafletOutput('AUmap'),
+      easyClose = TRUE))  })
+  
+  output$AUmap <- renderLeaflet({
+    req(region_filter(), basin_filter(), huc6_filter())
+    m <- mapview(huc6_filter(), color = 'yellow',lwd= 5, label= huc6_filter()$VAHU6, layer.name = c('Selected HUC6'),
+                 popup= popupTable(huc6_filter(), zcol=c('VAHU6',"VaName","VAHU5","ASSESS_REG"))) + 
+      mapview(AUs(), label= AUs()$ID305B, layer.name = c('AUs in Selected HUC6'), zcol = "ID305B", legend=FALSE,
+              popup= popupTable(AUs(), zcol=c("ID305B","MILES","CYCLE","WATER_NAME","LOCATION" )))
+    m@map })
   
   ## Station Review Tab
   # Show selected AU
@@ -73,6 +100,7 @@ shinyServer(function(input, output, session) {
   # Pull Conventionals data for selected AU on click
   conventionals_AU <- eventReactive( input$pullAUdata, {
     filter(conventionals, Huc6_Vahu6 %in% huc6_filter()$VAHU6) })
+  observe(userData$conventionals_AU <- conventionals_AU())
   
   output$stationSelection_ <- renderUI({ req(conventionals_AU())
     selectInput('stationSelection', 'Station Selection', choices = unique(conventionals_AU()$FDT_STA_ID))  })

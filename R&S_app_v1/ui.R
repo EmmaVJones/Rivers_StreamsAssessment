@@ -38,6 +38,8 @@ shinyUI(fluidPage(theme="yeti.css",
                                 #                   the tool for analysis.'),
                                 #          fileInput('stationsTable','Choose your Regional Stations Table 2.0.',
                                 #                    accept = c(".RDS")),
+                                #          fileInput('regionalAUshapefile','Choose your Regional Assessment Unit shapefile.',
+                                #                    accept = c(".dbf",".prj",".sbn",".sbx",".shp","shp.xml",".shx")),
                                 #          h5('Comment Files'),
                                 #          helpText('Comment files are generated each time an assessor utlizes the Rivers and Streams 
                                 #                   Assessment Tool comment fields. Though entering information into these fields is not
@@ -58,11 +60,16 @@ shinyUI(fluidPage(theme="yeti.css",
                                           sidebarPanel(
                                             dynamicSelectInput("DEQregionSelection", "Select DEQ Assessment Region", multiple = FALSE),
                                             dynamicSelectInput("basinSelection", "Select Major Basin", multiple = FALSE),
-                                            dynamicSelectInput("HUC6Selection", "Select Major Basin", multiple = FALSE)),
+                                            dynamicSelectInput("HUC6Selection", "Select VAHU6", multiple = FALSE),
+                                            br(),
+                                            actionButton('reviewAUs',"Preview Assesment Units",class='btn-block')),
                                           mainPanel(
                                             leafletOutput('VAmap'),
                                             br(),
-                                            DT::dataTableOutput('AUstationSummary')
+                                            h5('Assessment Units in Selected VAHU6'),
+                                            DT::dataTableOutput('AUSummary'),
+                                            h5('Stations in Selected VAHU6'),
+                                            DT::dataTableOutput('stationSummary')
                                           )
                                  ),
                                 tabPanel('Station Review',
