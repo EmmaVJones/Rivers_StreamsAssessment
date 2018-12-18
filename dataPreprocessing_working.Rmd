@@ -50,7 +50,8 @@ stationTable <- read_excel('data/Emma_Stations2018IR_Draft_Dec.xlsx')
 Bring in updated WQS for James basin. To get here, I took the updated basin files from each of their respective geodatabases, pulled out the riverine layer, exported to shapefile, and put in C:/updatedWQS directory for easy access.
 ```{r WQS}
 #example:
-WQS <- st_read('C:/updatedWQS/updatedJames.shp')
+WQS <- st_read('C:/updatedWQS/updatedJames.shp')%>%
+  st_transform(crs = 102003) # convert to Albers Equal Area just for snapping
 #glimpse(WQS)
 ```
 
@@ -96,31 +97,50 @@ BRRO_Sites_noAU <- filter(BRRO_Sites, is.na(ID305B_1))
 snapList_AU <- snap_Points_to_Feature_List(BRRO_Sites_noAU,'FDT_STA_ID',AUs, seq(10,50,by=10))
 ```
 
-For now, just drop the sites that didnt snap to an AU segment. Normally we would fix those but aint nobody got time for that now.
+For now, just drop the sites that didnt snap to an AU segment. Normally we would fix those but aint nobody got time for that now. And drop sites that connected to more than one AU, same reason as above.
 
+```{r AUinfo to sites}
+# function to find sites with +1 segment
+snapCheck <- function(successDataFrame){
+  successDataFrame %>%
+    group_by(`Point Unique Identifier`) %>%
+    filter(n()>1)
+}
 
+tooMany <- snapCheck(snapList_AU[['sf_output']])
+
+sites <- filter(snapList_AU[['sf_output']], !(`Point Unique Identifier` %in% tooMany$`Point Unique Identifier`)) %>%
+  st_set_geometry(NULL) %>%
+  mutate(FDT_STA_ID=`Point Unique Identifier`)
+
+BRRO_Sites_noAU_AU <- filter(BRRO_Sites_noAU, FDT_STA_ID %in% sites$`Point Unique Identifier`) %>%
+  st_set_geometry(NULL) %>%
+  left_join(sites, by = 'FDT_STA_ID') %>%
+  mutate(ID305B_1 = ID305B) %>%
+  select(FDT_STA_ID, ID305B_1)
+
+BRRO_Sites_AU <- BRRO_Sites %>% # start with sites regardless of AU's
+  left_join(BRRO_Sites_noAU_AU, by = 'FDT_STA_ID') %>%
+  mutate(ID305B_1 = ifelse(is.na(ID305B_1.x), as.character(ID305B_1.y), ID305B_1.x)) %>% # replace with snapped if NA
+  select(-c(ID305B_1.x,ID305B_1.y)) %>%
+  filter(!is.na(ID305B_1)) %>%
+  select(FDT_STA_ID:STATION_ID, ID305B_1,ID305B_2:geometry)
+rm(BRRO_Sites_noAU_AU);rm(tooMany);rm(BRRO_Sites_noAU);rm(sites)
+```
+
+Now we need to attach **NEW** standards info by snapping.
 
 
 ## Snap Stations to WQS
 
-Using the wokring copy of the snapFunction, we will snap unique stations from conventionals to WQS. It is important to use conventionals because these will be the 'real' list of stations we need to assess each window. If we went from the stationsTable then we could miss stations if they were not in the previous cycle. 
+Using the wokring copy of the snapFunction, we will snap unique stations with AUs to WQS. It is important to use conventionals because these will be the 'real' list of stations we need to assess each window. If we went from the stationsTable then we could miss stations if they were not in the previous cycle. 
 
 Eventually, after the assessors have updated stationsTable to include appropriate WQS, we could add a step that first joins unique stations from conventionals to last cycle's stationsTable to significantly reduce the number of stations we need to attach new WQS information to.
 
 For now, let's just work in the Roanoke Basin. We will also save some QA steps and only initially work with stations that connected to one geometry within a 10-50 meter buffer distance.
 
 ```{r snapWQS}
-source('snapFunctions.R')
-
-BRRO_Sites_sf <- filter(conventionals, Basin == 'Roanoke River Basin') %>% # just Roanoke
-  distinct(FDT_STA_ID, .keep_all = TRUE) %>% # Just unique sites
-  select(FDT_STA_ID:FDT_SPG_CODE,STA_LV2_CODE:STA_CBP_NAME) %>% # drop sample data
-  st_as_sf(coords = c("Longitude", "Latitude"), 
-           remove = F, # don't remove these lat/lon cols from df
-           crs = 4269) %>% # add projection, needs to be geographic for now bc entering lat/lng, 
-  st_transform( st_crs(WQS)) # now change crs to Albers to make snapping work
-
-#snapList_BRRO <- snap_Points_to_Feature_List(BRRO_Sites_sf,'FDT_STA_ID',WQS, seq(10,50,by=10))
+snapList_AU_WQS <- snap_Points_to_Feature_List(BRRO_Sites_AU,'FDT_STA_ID',WQS, seq(10,50,by=10))
 #saveRDS(snapList_BRRO, 'workingDatasets/snapList_BRRO.RDS')
 snapList_BRRO <- readRDS('workingDatasets/snapList_BRRO.RDS')
 
