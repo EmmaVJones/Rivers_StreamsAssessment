@@ -20,8 +20,108 @@ This document walks users through the requisite data preprocessing steps for the
 ## Input data
 
 #### Conventionals
-Bring in Roger's conventionals dataset.
+Bring in Roger's conventionals dataset. Make it a csv immediately to speed up rendering in app.
 ```{r conventionals2018}
-conventionals <- read_excel('workingDatasets/CONVENTIONALS_20171010.xlsx',sheet = 'CONVENTIONALS')
+#conventionals <- read_excel('workingDatasets/CONVENTIONALS_20171010.xlsx',sheet = 'CONVENTIONALS')
+#conventionals$FDT_DATE_TIME2 <- as.POSIXct(conventionals$FDT_DATE_TIME, format="%m/%d/%y %H:%M")
+#write.csv(conventionals, 'workingDatasets/CONVENTIONALS_20171010.csv', row.names=F)
+
+conventionals <- suppressWarnings(suppressMessages(read_csv('workingDatasets/CONVENTIONALS_20171010.csv')))
 #glimpse(conventionals)
+```
+
+Work with just BRRO for now, James basin bc it comes up first. Skip step when working up full state data.
+
+```{r BRROconventionals}
+conventionals <- filter(conventionals, Deq_Region == 'Blue Ridge') %>%
+  filter( Basin == 'James River Basin')# just James
+```
+
+
+#### Last Cycle's Stations Table
+
+This is a draft from Mary right now, but everything should be in there (Stations and ID305B's). Keep determinations for now even though they are draft.
+
+```{r stationTable}
+stationTable <- read_excel('data/Emma_Stations2018IR_Draft_Dec.xlsx')
+```
+
+#### WQS
+Bring in updated WQS for James basin. To get here, I took the updated basin files from each of their respective geodatabases, pulled out the riverine layer, exported to shapefile, and put in C:/updatedWQS directory for easy access.
+```{r WQS}
+#example:
+WQS <- st_read('C:/updatedWQS/updatedJames.shp')
+#glimpse(WQS)
+```
+
+So right now, conventionals already has the VAHU5 and VAHU6 designations, stationsTable already has previous ID305B designations and previous violation counts, and all we need to proceed (for field parameters and basic chemistry) is the appropriate WQS info attached to each StationID. For new stations, we will need to snap stations to last cycle's finalized assessment unit shapefile.
+
+#### Assessment Layer (last cycle)
+
+Since 2018 isn't published yet, working from 2016 final layer. 
+
+
+```{r Assessment Unit shapefile}
+AUs <- st_read('GIS/va_2016_aus_riverine_WGS84.shp') %>%
+  st_transform(crs = 102003) # convert to Albers Equal Area just for snapping
+```
+
+
+## Attach Assessment Units, if they exist
+
+This will only work for stations that have info from previous cycle. All new stations will need to be buffered to AUs layer. 
+
+```{r AUconnection}
+BRRO_Sites <- conventionals %>%
+  distinct(FDT_STA_ID, .keep_all = TRUE) %>% # Just unique sites
+  select(FDT_STA_ID:FDT_SPG_CODE,STA_LV2_CODE:STA_CBP_NAME) %>% # drop sample data
+  mutate(STATION_ID = FDT_STA_ID) %>% # make joining column
+  left_join(stationTable, by='STATION_ID') %>% # join to get ID305B info
+  st_as_sf(coords = c("Longitude", "Latitude"),  # make spatial layer while at it
+           remove = F, # don't remove these lat/lon cols from df
+           crs = 4269) %>% # add projection, needs to be geographic for now bc entering lat/lng, 
+  st_transform( st_crs(AUs)) # now change crs to Albers to make snapping work
+  
+sum(!is.na(BRRO_Sites$ID305B_1))/nrow(BRRO_Sites)*100
+sum(is.na(BRRO_Sites$ID305B_1))/nrow(BRRO_Sites)*100
+```
+
+About half have existing AU information, cool. Will fix no AU sites by snapping to spatial layer with that information.
+
+```{r snapAUs}
+source('snapFunctions.R')
+
+BRRO_Sites_noAU <- filter(BRRO_Sites, is.na(ID305B_1))
+
+snapList_AU <- snap_Points_to_Feature_List(BRRO_Sites_noAU,'FDT_STA_ID',AUs, seq(10,50,by=10))
+```
+
+For now, just drop the sites that didnt snap to an AU segment. Normally we would fix those but aint nobody got time for that now.
+
+
+
+
+## Snap Stations to WQS
+
+Using the wokring copy of the snapFunction, we will snap unique stations from conventionals to WQS. It is important to use conventionals because these will be the 'real' list of stations we need to assess each window. If we went from the stationsTable then we could miss stations if they were not in the previous cycle. 
+
+Eventually, after the assessors have updated stationsTable to include appropriate WQS, we could add a step that first joins unique stations from conventionals to last cycle's stationsTable to significantly reduce the number of stations we need to attach new WQS information to.
+
+For now, let's just work in the Roanoke Basin. We will also save some QA steps and only initially work with stations that connected to one geometry within a 10-50 meter buffer distance.
+
+```{r snapWQS}
+source('snapFunctions.R')
+
+BRRO_Sites_sf <- filter(conventionals, Basin == 'Roanoke River Basin') %>% # just Roanoke
+  distinct(FDT_STA_ID, .keep_all = TRUE) %>% # Just unique sites
+  select(FDT_STA_ID:FDT_SPG_CODE,STA_LV2_CODE:STA_CBP_NAME) %>% # drop sample data
+  st_as_sf(coords = c("Longitude", "Latitude"), 
+           remove = F, # don't remove these lat/lon cols from df
+           crs = 4269) %>% # add projection, needs to be geographic for now bc entering lat/lng, 
+  st_transform( st_crs(WQS)) # now change crs to Albers to make snapping work
+
+#snapList_BRRO <- snap_Points_to_Feature_List(BRRO_Sites_sf,'FDT_STA_ID',WQS, seq(10,50,by=10))
+#saveRDS(snapList_BRRO, 'workingDatasets/snapList_BRRO.RDS')
+snapList_BRRO <- readRDS('workingDatasets/snapList_BRRO.RDS')
+
 ```
