@@ -3,7 +3,7 @@ source('global.R')
 source('AUshapefileLocation.R')
 
 #assessmentLayer <- st_read('GIS/AssessmentRegions_VA84_basins.shp') %>%
-#  st_transform( st_crs(4326)) %>% st_zm(regionalAUs)
+#  st_transform( st_crs(4326)) 
 #stationTable <- readRDS('data/BRROsites_ROA_sf.RDS')
 #conventionals <- read_excel('data/CONVENTIONALS_20171010.xlsx') # need to change to read_CSV for final to make sure it runs faster
 #conventionals$FDT_DATE_TIME2 <- as.POSIXct(conventionals$FDT_DATE_TIME, format="%m/%d/%y %H:%M")

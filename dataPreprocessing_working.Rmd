@@ -140,8 +140,25 @@ Eventually, after the assessors have updated stationsTable to include appropriat
 For now, let's just work in the Roanoke Basin. We will also save some QA steps and only initially work with stations that connected to one geometry within a 10-50 meter buffer distance.
 
 ```{r snapWQS}
-snapList_AU_WQS <- snap_Points_to_Feature_List(BRRO_Sites_AU,'FDT_STA_ID',WQS, seq(10,50,by=10))
-#saveRDS(snapList_BRRO, 'workingDatasets/snapList_BRRO.RDS')
-snapList_BRRO <- readRDS('workingDatasets/snapList_BRRO.RDS')
-
+#snapList_AU_WQS <- snap_Points_to_Feature_List(BRRO_Sites_AU,'FDT_STA_ID',WQS, seq(10,50,by=10))
+#saveRDS(snapList_AU_WQS, 'workingDatasets/snapList_AU_WQS.RDS')
+snapList_AU_WQS <- readRDS('workingDatasets/snapList_AU_WQS.RDS')
 ```
+
+Now time to filter out stuff that didn't connect to a WQS. THis list will have all AU and WQS info and be ready to go into app. Unfortunately, because assessors need to edit this list, I need to export it eventually as an excel file so they can use it. Maybe one day in the future I could keep as sf and speed up app processing.
+
+```{r final snapList}
+tooMany <- snapCheck(snapList_AU_WQS[['sf_output']])
+
+sites <- filter(snapList_AU_WQS[['sf_output']], !(`Point Unique Identifier` %in% tooMany$`Point Unique Identifier`)) %>%
+  st_set_geometry(NULL) %>%
+  mutate(FDT_STA_ID=`Point Unique Identifier`)
+
+
+BRRO_Sites_AU_WQS <- BRRO_Sites_AU %>%
+  right_join(sites, by = 'FDT_STA_ID') %>%
+  st_set_geometry(NULL)
+
+write.csv(BRRO_Sites_AU_WQS, 'data/BRRO_Sites_AU_WQS.csv', row.names=FALSE)
+```
+
