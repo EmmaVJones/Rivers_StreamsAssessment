@@ -37,7 +37,7 @@ shinyUI(fluidPage(theme="yeti.css",
                                 #                   upload their results to the Rivers and Streams Assessment Tool each time they open
                                 #                   the tool for analysis.'),
                                 #          fileInput('stationsTable','Choose your Regional Stations Table 2.0.',
-                                #                    accept = c(".RDS")),
+                                #                    accept = c(".csv")),
                                 #          fileInput('regionalAUshapefile','Choose your Regional Assessment Unit shapefile.',
                                 #                    accept = c(".dbf",".prj",".sbn",".sbx",".shp","shp.xml",".shx")),
                                 #          h5('Comment Files'),
