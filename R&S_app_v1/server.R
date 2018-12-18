@@ -100,8 +100,7 @@ shinyServer(function(input, output, session) {
   # Pull Conventionals data for selected AU on click
   conventionals_AU <- eventReactive( input$pullAUdata, {
     filter(conventionals, Huc6_Vahu6 %in% huc6_filter()$VAHU6) })
-  observe(userData$conventionals_AU <- conventionals_AU())
-  
+
   output$stationSelection_ <- renderUI({ req(conventionals_AU())
     selectInput('stationSelection', 'Station Selection', choices = unique(conventionals_AU()$FDT_STA_ID))  })
   
@@ -130,7 +129,7 @@ shinyServer(function(input, output, session) {
   #### Data Sub Tab
   
   output$stationRawData <- DT::renderDataTable({ stationData()
-    DT::datatable(stationData(), row.names=FALSE, extensions = 'Buttons', escape=F,
+    DT::datatable(stationData(), extensions = 'Buttons', escape=F,
                   options= list(scrollX = TRUE, pageLength = nrow(stationData()), scrollY = "300px", 
                                 dom='Btf', buttons=list('copy',
                                                         list(extend='csv',filename=paste('StationData_',paste(input$stationSelection, collapse = "_"),Sys.Date(),sep='')),
