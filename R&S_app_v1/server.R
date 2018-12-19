@@ -7,6 +7,7 @@ assessmentLayer <- st_read('GIS/AssessmentRegions_VA84_basins.shp') %>%
 stationTable <- read_csv('data/BRRO_Sites_AU_WQS.csv')
 #stationTable <- readRDS('data/BRROsites_ROA_sf.RDS')
 conventionals <- suppressWarnings(read_csv('data/CONVENTIONALS_20171010.csv'))
+conventionals$FDT_DATE_TIME2 <- as.POSIXct(conventionals$FDT_DATE_TIME, format="%m/%d/%Y %H:%M")
 
 mapviewOptions(basemaps = c( "OpenStreetMap",'Esri.WorldImagery'),
                vector.palette = colorRampPalette(brewer.pal(8, "Set1")),
@@ -105,7 +106,7 @@ shinyServer(function(input, output, session) {
               rownames = FALSE, options= list(pageLength = 20, scrollY = "35px", dom='Bt'))})
   
   # Pull Conventionals data for selected AU on click
-  conventionals_HUC <- eventReactive( input$pullAUdata, {
+  conventionals_HUC <- eventReactive( input$pullHUCdata, {
     z <- filter(conventionals, Huc6_Vahu6 %in% huc6_filter()$VAHU6) %>%
       left_join(dplyr::select(stationTable(), FDT_STA_ID, ID305B_1, ID305B_2, ID305B_3), by='FDT_STA_ID')})
   
@@ -114,7 +115,8 @@ shinyServer(function(input, output, session) {
   
   output$selectedAU <- DT::renderDataTable({req(conventionals_HUC(),input$AUSelection)
     z <- filter(regionalAUs, ID305B %in% input$AUSelection) %>% st_set_geometry(NULL) %>% as.data.frame()
-    datatable(z, rownames = FALSE, options= list(pageLength = nrow(z),scrollX = TRUE, scrollY = "200px", dom='Bt'))})
+    datatable(z, rownames = FALSE, 
+              options= list(pageLength = nrow(z),scrollX = TRUE, scrollY = "200px", dom='Bt'))})
 
   output$stationSelection_ <- renderUI({ req(conventionals_HUC(), input$AUSelection)
     z <- filter(conventionals_HUC(), ID305B_1 %in% input$AUSelection | 
@@ -123,6 +125,11 @@ shinyServer(function(input, output, session) {
       distinct(FDT_STA_ID)
     selectInput('stationSelection', 'Station Selection', choices = unique(z$FDT_STA_ID))  })
   
+  AUData <- eventReactive( input$AUSelection, {
+    filter(conventionals_HUC(), ID305B_1 %in% input$AUSelection | 
+             ID305B_2 %in% input$AUSelection | 
+             ID305B_2 %in% input$AUSelection) }) 
+  
   stationData <- eventReactive( input$stationSelection, {
     filter(conventionals_HUC(), FDT_STA_ID %in% input$stationSelection) })
   
@@ -130,18 +137,6 @@ shinyServer(function(input, output, session) {
     z <- filter(stationTable(), FDT_STA_ID == input$stationSelection) %>% 
       t() %>% as.data.frame() %>% rename(`Station Information` = 1)
     DT::datatable(z, options= list(pageLength = nrow(z), scrollY = "200px", dom='Bt'))  })
-  
-  output$table <- renderPrint({
-    req(stationData())
-    point <- select(stationData()[1,],  FDT_STA_ID:FDT_SPG_CODE, STA_LV2_CODE:ID305B_3 ) %>%
-      st_as_sf(coords = c("Longitude", "Latitude"), 
-               remove = F, # don't remove these lat/lon cols from df
-               crs = 4269) # add projection, needs to be geographic for now bc entering lat/lng
-    segment <- filter(regionalAUs, ID305B %in% as.character(point$ID305B_1) |
-                        ID305B %in% as.character(point$ID305B_2) |
-                        ID305B %in% as.character(point$ID305B_3))
-    
-              print(segment)})
   
   output$stationMap <- renderLeaflet({
     req(stationData())
@@ -161,12 +156,13 @@ shinyServer(function(input, output, session) {
   
   #### Data Sub Tab
   
-  #output$stationRawData <- DT::renderDataTable({ stationData()
-  #  DT::datatable(stationData(), extensions = 'Buttons', escape=F,
-  #                options= list(scrollX = TRUE, pageLength = nrow(stationData()), scrollY = "300px", 
-  #                              dom='Btf', buttons=list('copy',
-  #                                                      list(extend='csv',filename=paste('StationData_',paste(input$stationSelection, collapse = "_"),Sys.Date(),sep='')),
-  #                                                      list(extend='excel',filename=paste('StationData_',paste(input$stationSelection, collapse = "_"),Sys.Date(),sep='')))))})
+  # Display Data
+  output$AURawData <- DT::renderDataTable({ AUData()
+    DT::datatable(AUData(), extensions = 'Buttons', escape=F, rownames = F,
+                  options= list(scrollX = TRUE, pageLength = nrow(AUData()), scrollY = "300px", 
+                                dom='Btf', buttons=list('copy',
+                                                        list(extend='csv',filename=paste('AUData_',paste(input$stationSelection, collapse = "_"),Sys.Date(),sep='')),
+                                                        list(extend='excel',filename=paste('AUData_',paste(input$stationSelection, collapse = "_"),Sys.Date(),sep='')))))})
   
   #output$stationDataTableRecords <- renderText({
   #  req(stationData())
@@ -174,6 +170,17 @@ shinyServer(function(input, output, session) {
   #output$stationDataTableAssessmentWindow <- renderText({
   #  req(stationData())
   #  withinAssessmentPeriod(stationData())})
+  
+  # Summarize data
+  output$stationDataTableRecords <- renderText({
+    req(AUData())
+    paste(nrow(AUData()), 'records were retrieved for',as.character(input$AUSelection),sep=' ')})
+  output$uniqueStationDataTableRecords <- renderTable({
+    req(AUData())
+    plyr::count(AUData(), vars = c("FDT_STA_ID"))%>%dplyr::rename('Number of Records'='freq')})
+  output$stationDataTableAssessmentWindow <- renderText({
+    req(AUData())
+    withinAssessmentPeriod(AUData())})
   
   #output$table <- renderPrint({
   #  req(stationData())
