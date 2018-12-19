@@ -163,14 +163,6 @@ shinyServer(function(input, output, session) {
                                 dom='Btf', buttons=list('copy',
                                                         list(extend='csv',filename=paste('AUData_',paste(input$stationSelection, collapse = "_"),Sys.Date(),sep='')),
                                                         list(extend='excel',filename=paste('AUData_',paste(input$stationSelection, collapse = "_"),Sys.Date(),sep='')))))})
-  
-  #output$stationDataTableRecords <- renderText({
-  #  req(stationData())
-  #  paste(nrow(stationData()), 'records were retrieved for',as.character(stationData()$FDT_STA_ID[1]),sep=' ')})
-  #output$stationDataTableAssessmentWindow <- renderText({
-  #  req(stationData())
-  #  withinAssessmentPeriod(stationData())})
-  
   # Summarize data
   output$stationDataTableRecords <- renderText({
     req(AUData())
@@ -182,13 +174,16 @@ shinyServer(function(input, output, session) {
     req(AUData())
     withinAssessmentPeriod(AUData())})
   
-  #output$table <- renderPrint({
-  #  req(stationData())
-  #  stationData()  })
-  
+  #### Temperature Sub Tab
   
   
 })
+
+
+#output$table <- renderPrint({
+#  req(stationData())
+#  stationData()  })
+
 
 
 # Station Map, didn't use module bc could not figure it out with sf 
