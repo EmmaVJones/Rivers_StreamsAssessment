@@ -80,7 +80,7 @@ shinyUI(fluidPage(theme="yeti.css",
                                          DT::dataTableOutput('selectedAU'),
                                          uiOutput('stationSelection_'),
                                          fluidRow(column(4, DT::dataTableOutput('stationInfo')),
-                                                  column(4, verbatimTextOutput("table"),leafletOutput('stationMap', height = 300, width = 300)),
+                                                  column(4, leafletOutput('stationMap', height = 300, width = 300),verbatimTextOutput("table")),
                                                   column(4,h4('Comments:'), 
                                                          textAreaInput('commentBox', label = NULL, height = 275, 
                                                                        placeholder = 'Comments'))),
@@ -97,8 +97,7 @@ shinyUI(fluidPage(theme="yeti.css",
                                                     helpText('Review each station using the station visualization section, then 
                                                               proceed to the bottom of the page to find exceedance rate for the entire assessment unit.', br(),
                                                              span(strong('NOTE: The temperature exceedance analysis results at the bottom of the page include data
-                                                                         from ALL stations within the assessment unit.'))))),
-                                         verbatimTextOutput("table"))
+                                                                         from ALL stations within the assessment unit.'))))))
                       )))
 ))
 

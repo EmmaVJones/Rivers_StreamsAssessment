@@ -133,7 +133,15 @@ shinyServer(function(input, output, session) {
   
   output$table <- renderPrint({
     req(stationData())
-        print(stationData()[1,])})
+    point <- select(stationData()[1,],  FDT_STA_ID:FDT_SPG_CODE, STA_LV2_CODE:ID305B_3 ) %>%
+      st_as_sf(coords = c("Longitude", "Latitude"), 
+               remove = F, # don't remove these lat/lon cols from df
+               crs = 4269) # add projection, needs to be geographic for now bc entering lat/lng
+    segment <- filter(regionalAUs, ID305B %in% as.character(point$ID305B_1) |
+                        ID305B %in% as.character(point$ID305B_2) |
+                        ID305B %in% as.character(point$ID305B_3))
+    
+              print(segment)})
   
   output$stationMap <- renderLeaflet({
     req(stationData())
@@ -145,8 +153,9 @@ shinyServer(function(input, output, session) {
                         ID305B %in% as.character(point$ID305B_2) |
                         ID305B %in% as.character(point$ID305B_3))
     map1 <- mapview(segment,zcol = 'ID305B', label= segment$ID305B, layer.name = 'Assessment Unit (ID305B_1)',
-            popup= popupTable(segment, zcol=c("FDT_STA_ID","Buffer Distance",'OBJECTID',"GNIS_ID","WATER_NAME"))) + 
-     mapview(point, color = 'yellow', lwd = 5, label= point$FDT_STA_ID, layer.name = c('Selected Station'))
+                    popup= popupTable(segment, zcol=c("ID305B","MILES","CYCLE","WATER_NAME"))) + 
+      mapview(point, color = 'yellow', lwd = 5, label= point$FDT_STA_ID, layer.name = c('Selected Station'),
+              popup=NULL)
     map1@map
   })
   
