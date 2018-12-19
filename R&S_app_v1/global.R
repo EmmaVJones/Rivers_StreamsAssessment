@@ -8,6 +8,7 @@ library(plotly)
 #library(raster)
 library(DT)
 library(readxl)
+library(RColorBrewer)
 #library(FSA)
 
 # Bring in modules

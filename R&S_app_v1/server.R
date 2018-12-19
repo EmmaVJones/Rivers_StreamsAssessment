@@ -2,11 +2,18 @@
 source('global.R')
 source('AUshapefileLocation.R')
 
-#assessmentLayer <- st_read('GIS/AssessmentRegions_VA84_basins.shp') %>%
-#  st_transform( st_crs(4326)) 
-#stationTable <- read_csv('data/BRRO_Sites_AU_WQS.csv')
+assessmentLayer <- st_read('GIS/AssessmentRegions_VA84_basins.shp') %>%
+  st_transform( st_crs(4326)) 
+stationTable <- read_csv('data/BRRO_Sites_AU_WQS.csv')
 #stationTable <- readRDS('data/BRROsites_ROA_sf.RDS')
-#conventionals <- suppressWarnings(read_csv('data/CONVENTIONALS_20171010.csv'))
+conventionals <- suppressWarnings(read_csv('data/CONVENTIONALS_20171010.csv'))
+
+mapviewOptions(basemaps = c( "OpenStreetMap",'Esri.WorldImagery'),
+               vector.palette = colorRampPalette(brewer.pal(8, "Set1")),
+               na.color = "magenta",
+               legend=FALSE)
+
+
 
 shinyServer(function(input, output, session) {
   
@@ -109,32 +116,39 @@ shinyServer(function(input, output, session) {
     z <- filter(regionalAUs, ID305B %in% input$AUSelection) %>% st_set_geometry(NULL) %>% as.data.frame()
     datatable(z, rownames = FALSE, options= list(pageLength = nrow(z),scrollX = TRUE, scrollY = "200px", dom='Bt'))})
 
-  #output$stationSelection_ <- renderUI({ req(conventionals_HUC())
-  #  selectInput('stationSelection', 'Station Selection', choices = unique(conventionals_HUC()$FDT_STA_ID))  })
+  output$stationSelection_ <- renderUI({ req(conventionals_HUC(), input$AUSelection)
+    z <- filter(conventionals_HUC(), ID305B_1 %in% input$AUSelection | 
+                   ID305B_2 %in% input$AUSelection | 
+                   ID305B_2 %in% input$AUSelection) %>%
+      distinct(FDT_STA_ID)
+    selectInput('stationSelection', 'Station Selection', choices = unique(z$FDT_STA_ID))  })
   
-  #stationData <- eventReactive( input$stationSelection, {
-  #  filter(conventionals_HUC(), FDT_STA_ID %in% input$stationSelection) })
+  stationData <- eventReactive( input$stationSelection, {
+    filter(conventionals_HUC(), FDT_STA_ID %in% input$stationSelection) })
   
-  #output$stationInfo <- DT::renderDataTable({ req(stationData())
-  #  z <- filter(stationTable(), FDT_STA_ID == input$stationSelection) %>% 
-  #    t() %>% as.data.frame() %>% rename(`Station Information` = 1)
-  #  print(z)
-  #  DT::datatable(z, options= list(pageLength = nrow(z), scrollY = "200px", dom='Bt'))  })
+  output$stationInfo <- DT::renderDataTable({ req(stationData())
+    z <- filter(stationTable(), FDT_STA_ID == input$stationSelection) %>% 
+      t() %>% as.data.frame() %>% rename(`Station Information` = 1)
+    DT::datatable(z, options= list(pageLength = nrow(z), scrollY = "200px", dom='Bt'))  })
   
+  output$table <- renderPrint({
+    req(stationData())
+        print(stationData()[1,])})
   
-  #output$stationMap <- renderLeaflet({
-  #  req(stationData())
-  #  point <- select(stationData()[1,],  FDT_STA_ID:FDT_SPG_CODE, STA_LV2_CODE:STA_CBP_NAME ) %>%
-  #    st_as_sf(coords = c("Longitude", "Latitude"), 
-  #             remove = F, # don't remove these lat/lon cols from df
-  #             crs = 4269) # add projection, needs to be geographic for now bc entering lat/lng
-  #  ID305B1 <- filter(stationTable, FDT_STA_ID %in% input$stationSelection)
-  #  segment <- filter(regionalAUs1, ID305B %in% as.character(ID305B1$ID305B_1))
-  #  map1 <- mapview(segment,label= segment$ID305B, layer.name = 'Assessment Unit (ID305B_1)',
-  #          popup= popupTable(segment, zcol=c("FDT_STA_ID","Buffer Distance",'OBJECTID',"GNIS_ID","WATER_NAME"))) + 
-  #   mapview(point, color = 'yellow', lwd = 5, label= point$FDT_STA_ID, layer.name = c('Selected Station'))
-  #  map1@map
-  #})
+  output$stationMap <- renderLeaflet({
+    req(stationData())
+    point <- select(stationData()[1,],  FDT_STA_ID:FDT_SPG_CODE, STA_LV2_CODE:ID305B_3 ) %>%
+      st_as_sf(coords = c("Longitude", "Latitude"), 
+               remove = F, # don't remove these lat/lon cols from df
+               crs = 4269) # add projection, needs to be geographic for now bc entering lat/lng
+    segment <- filter(regionalAUs, ID305B %in% as.character(point$ID305B_1) |
+                        ID305B %in% as.character(point$ID305B_2) |
+                        ID305B %in% as.character(point$ID305B_3))
+    map1 <- mapview(segment,zcol = 'ID305B', label= segment$ID305B, layer.name = 'Assessment Unit (ID305B_1)',
+            popup= popupTable(segment, zcol=c("FDT_STA_ID","Buffer Distance",'OBJECTID',"GNIS_ID","WATER_NAME"))) + 
+     mapview(point, color = 'yellow', lwd = 5, label= point$FDT_STA_ID, layer.name = c('Selected Station'))
+    map1@map
+  })
   
   #### Data Sub Tab
   
