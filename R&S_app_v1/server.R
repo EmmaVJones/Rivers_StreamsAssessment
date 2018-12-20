@@ -108,7 +108,7 @@ shinyServer(function(input, output, session) {
   # Pull Conventionals data for selected AU on click
   conventionals_HUC <- eventReactive( input$pullHUCdata, {
     z <- filter(conventionals, Huc6_Vahu6 %in% huc6_filter()$VAHU6) %>%
-      left_join(dplyr::select(stationTable(), FDT_STA_ID, ID305B_1, ID305B_2, ID305B_3), by='FDT_STA_ID')})
+      left_join(dplyr::select(stationTable(), FDT_STA_ID, SEC, CLASS, SPSTDS, ID305B_1, ID305B_2, ID305B_3), by='FDT_STA_ID')})
   
   output$AUSelection_ <- renderUI({ req(conventionals_HUC())
     selectInput('AUSelection', 'Assessment Unit Selection', choices = conventionals_HUC()$ID305B_1)  })
