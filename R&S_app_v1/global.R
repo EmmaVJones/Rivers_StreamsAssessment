@@ -13,7 +13,7 @@ library(RColorBrewer)
 
 # Bring in modules
 source('appModules/multipleDependentSelectizeArguments.R')
-#source('appModules/map_mapview_sf.R')
+source('appModules/temperatureModule.R')
 
 # Loading screen
 load_data <- function() {
@@ -47,3 +47,46 @@ withinAssessmentPeriod <- function(x){
     print('Data included that falls outside of assessment period. Review input data.')
   }else{print('All input data falls within the assessment period.')}
 }
+
+# Super Assessment function
+assessmentDetermination <- function(parameterDF,parameterAssessmentDF,parameter,use){
+  
+  results <- data.frame(nSamples = nrow(parameterDF),nExceedance = nrow(parameterAssessmentDF))%>%
+    mutate(exceedanceRate = (nExceedance/nSamples)*100)
+  
+  if(results$exceedanceRate > 10.5 & results$nSamples > 10){outcome <- paste('Water impaired for',parameter)}
+  if(results$exceedanceRate < 10.5 & results$nSamples > 10){outcome <- paste('Water not impaired for',parameter)}
+  if(results$nExceedance >= 2 & results$nSamples < 10){outcome <- paste('Water impaired for',parameter)}
+  if(results$nExceedance < 2 & results$nSamples < 10){outcome <- paste('Water not impaired for',parameter)}
+  
+  results <- mutate(results,Assessment=outcome, Use= use)
+  return(results)
+}
+#assessmentDetermination(temp,temp_Assess,"temperature","Aquatic Life")
+
+
+
+#### Temperature Assessment Functions
+
+#Max Temperature Exceedance Function
+temp_Assessment <- function(x){
+  temp <- dplyr::select(x,FDT_DATE_TIME,FDT_TEMP_CELCIUS, `Max Temperature (C)`)%>% # Just get relavent columns, 
+    filter(!is.na(FDT_TEMP_CELCIUS))%>% #get rid of NA's
+    mutate(TemperatureExceedance=ifelse(FDT_TEMP_CELCIUS > `Max Temperature (C)`,T,F))%>% # Identify where above max Temperature, 
+    filter(TemperatureExceedance==TRUE) # Only return temp measures above threshold
+  return(temp)
+}
+
+# Exceedance Rate Temperature
+exceedance_temp <- function(x){
+  temp <- dplyr::select(x,FDT_DATE_TIME,FDT_TEMP_CELCIUS,`Max Temperature (C)`)%>% # Just get relavent columns, 
+    filter(!is.na(FDT_TEMP_CELCIUS)) #get rid of NA's
+  temp_Assess <- temp_Assessment(x)
+  
+  temp_results <- assessmentDetermination(temp,temp_Assess,"temperature","Aquatic Life")
+  return(temp_results)
+}
+
+
+#### pH Assessment Functions
+

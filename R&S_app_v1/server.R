@@ -128,10 +128,11 @@ shinyServer(function(input, output, session) {
   AUData <- eventReactive( input$AUSelection, {
     filter(conventionals_HUC(), ID305B_1 %in% input$AUSelection | 
              ID305B_2 %in% input$AUSelection | 
-             ID305B_2 %in% input$AUSelection) }) 
+             ID305B_2 %in% input$AUSelection) %>% 
+      left_join(WQSvalues, by = 'CLASS') }) 
   
   stationData <- eventReactive( input$stationSelection, {
-    filter(conventionals_HUC(), FDT_STA_ID %in% input$stationSelection) })
+    filter(AUData(), FDT_STA_ID %in% input$stationSelection) })
   
   output$stationInfo <- DT::renderDataTable({ req(stationData())
     z <- filter(stationTable(), FDT_STA_ID == input$stationSelection) %>% 
@@ -154,9 +155,9 @@ shinyServer(function(input, output, session) {
     map1@map
   })
   
-  #### Data Sub Tab
+  #### Data Sub Tab ####---------------------------------------------------------------------------------------------------
   
-  # Display Data
+  # Display Data 
   output$AURawData <- DT::renderDataTable({ AUData()
     DT::datatable(AUData(), extensions = 'Buttons', escape=F, rownames = F,
                   options= list(scrollX = TRUE, pageLength = nrow(AUData()), scrollY = "300px", 
@@ -174,7 +175,19 @@ shinyServer(function(input, output, session) {
     req(AUData())
     withinAssessmentPeriod(AUData())})
   
-  #### Temperature Sub Tab
+  ## Temperature Sub Tab ##------------------------------------------------------------------------------------------------------
+  
+  # Select One station for individual review
+  output$temperature_oneStationSelectionUI <- renderUI({
+    req(AUData())
+    selectInput('temperature_oneStationSelection',strong('Select Station to Review'),choices=unique(AUData())$FDT_STA_ID,width='300px')})
+  
+  
+  temperature_oneStation <- reactive({
+    req(input$temperature_oneStationSelection)
+    filter(AUData(),FDT_STA_ID %in% input$temperature_oneStationSelection)})
+  
+  callModule(temperatureSubTab,'temperature',temperature_oneStation)
   
   
 })

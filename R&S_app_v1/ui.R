@@ -96,12 +96,26 @@ shinyUI(fluidPage(theme="yeti.css",
                                                     h5('Assessment Window:'),
                                                     fluidRow(column(1),column(10,textOutput('stationDataTableAssessmentWindow'))), br(),br()),
                                            tabPanel('Temperature',
-                                                    helpText('Review each station using the station visualization section, then 
-                                                              proceed to the bottom of the page to find exceedance rate for the entire assessment unit.', br(),
+                                                    helpText('Review each site using the single site visualization section, then 
+                                                             proceed to the bottom of the page to find exceedance rate for the entire assessment unit.',br(),
                                                              span(strong('NOTE: The temperature exceedance analysis results at the bottom of the page include data
-                                                                         from ALL stations within the assessment unit.'))))))
-                      )))
-))
-
+                                                                         from ALL stations within the assessment unit.'))),
+                                                    wellPanel(
+                                                      h4(strong('Single Station Data Visualization')),
+                                                      uiOutput('temperature_oneStationSelectionUI'),
+                                                      temperatureSubTabUI('temperature')),
+                                                    br(),hr(),br(),
+                                                    h5(strong("Temperature Exceedance Analysis")),
+                                                    fluidRow(
+                                                      column(6,
+                                                             h5('All temperature records that exceed the threshold for the',span(strong('assessment unit')),' are highlighted below. 
+                                                                If no records are presented in the table below, then no data exceedes the temperature threshold.'),
+                                                             tableOutput('tempRangeTable')),
+                                                      column(6,
+                                                             wellPanel(
+                                                               h5('Station Exceedance Rate:')))))
+                                         )))
+                    )))
+)
 
 #verbatimTextOutput("table"),

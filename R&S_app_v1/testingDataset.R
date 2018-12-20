@@ -39,3 +39,21 @@ AUData <- filter(conventionals_HUC, ID305B_1 %in% 'VAW-H01R_JMS04A00' |
   left_join(WQSvalues, by = 'CLASS')
 x <-filter(AUData, FDT_STA_ID %in% '2-JMS279.41') 
 
+
+
+# Super Assessment function
+assessmentDetermination <- function(parameterDF,parameterAssessmentDF,parameter,use){
+  
+  results <- data.frame(nSamples = nrow(parameterDF),nExceedance = nrow(parameterAssessmentDF))%>%
+    mutate(exceedanceRate = (nExceedance/nSamples)*100)
+  
+  if(results$exceedanceRate > 10.5 & results$nSamples > 10){outcome <- paste('Water impaired for',parameter)}
+  if(results$exceedanceRate < 10.5 & results$nSamples > 10){outcome <- paste('Water not impaired for',parameter)}
+  if(results$nExceedance >= 2 & results$nSamples < 10){outcome <- paste('Water impaired for',parameter)}
+  if(results$nExceedance < 2 & results$nSamples < 10){outcome <- paste('Water not impaired for',parameter)}
+  
+  results <- mutate(results,Assessment=outcome, Use= use)
+  return(results)
+}
+#assessmentDetermination(temp,temp_Assess,"temperature","Aquatic Life")
+

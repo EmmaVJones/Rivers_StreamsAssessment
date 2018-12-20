@@ -4,7 +4,7 @@ source('testingDataset.R')
 
 #Max Temperature Exceedance Function
 temp_Assessment <- function(x){
-  temp <- dplyr::select(x,FDT_DATE_TIME,FDT_DEPTH,FDT_TEMP_CELCIUS, `Max Temperature (C)`)%>% # Just get relavent columns, 
+  temp <- dplyr::select(x,FDT_DATE_TIME,FDT_TEMP_CELCIUS, `Max Temperature (C)`)%>% # Just get relavent columns, 
     filter(!is.na(FDT_TEMP_CELCIUS))%>% #get rid of NA's
     mutate(TemperatureExceedance=ifelse(FDT_TEMP_CELCIUS > `Max Temperature (C)`,T,F))%>% # Identify where above max Temperature, 
     filter(TemperatureExceedance==TRUE) # Only return temp measures above threshold
@@ -13,15 +13,11 @@ temp_Assessment <- function(x){
 
 # Exceedance Rate Temperature
 exceedance_temp <- function(x){
-  temp <- dplyr::select(x,FDT_DATE_TIME,FDT_DEPTH,FDT_TEMP_CELCIUS)%>% # Just get relavent columns, 
+  temp <- dplyr::select(x,FDT_DATE_TIME,FDT_TEMP_CELCIUS,`Max Temperature (C)`)%>% # Just get relavent columns, 
     filter(!is.na(FDT_TEMP_CELCIUS)) #get rid of NA's
   temp_Assess <- temp_Assessment(x)
   
   temp_results <- assessmentDetermination(temp,temp_Assess,"temperature","Aquatic Life")
-  #data.frame(nSamples = nrow(temp),nExceedance = nrow(temp_Assess))%>%
-  #mutate(exceedanceRate = (nExceedance/nSamples)*100,
-  #       temperature_Determination = ifelse(exceedanceRate > 10.5 & nSamples > 2, 
-  #                                          'Water impaired for temperature','Water not imparied for temperature'))
   return(temp_results)
 }
 
@@ -59,12 +55,58 @@ temperatureSubTab <- function(input,output,session, oneStationData){
   
   output$TempRangeTableSingleSite <- renderTable({
     req(oneStationData)
-    DO_Assessment(oneStationData(),c("Epilimnion",NA))%>%dplyr::select(-FDT_STA_ID)})
-  
+    z <- temp_Assessment(oneStationData())
+    if(nrow(z)>0){return(z%>%dplyr::select(-FDT_STA_ID))}else{return(z)}
+    
+    })
 }
 
+temperatureExceedanceAnalysisUI <- function(id){
+  ns <- NS(id)
+  tagList(
+    fluidRow(
+      column(6,
+             h5('All temperature records that exceed the threshold for the',span(strong('assessment unit')),' are highlighted below. 
+                If no records are presented in the table below, then no data exceedes the temperature threshold.'),
+             tableOutput(ns('tempRangeTable'))),
+      column(6,
+             wellPanel(
+               h5('Station Exceedance Rate:'),
+               uiOutput(ns('stationTempExceedanceRateSelect_UI')),
+               tableOutput(ns("stationTempExceedanceRate"))),
+             hr(),
+             h5('Assessment Unit Exceedance Rate:'),
+             tableOutput(ns("tempExceedanceRate"))))
+    
+  )
+}
 
-
+temperatureExceedanceAnalysis <- function(input, output, session, AUdata){
+  ns <- session$ns
+  
+  # Temperature Raw Exceedance Results (all AU)
+  output$tempRangeTable <- renderTable({
+    req(AUdata)
+    temp_Assessment(AUdata)})
+  
+  # Temperature Station Exceedance Rate
+  output$stationTempExceedanceRateSelect_UI <- renderUI({
+    req(AUdata)
+    selectInput('stationTempExceedanceRateSelect',strong('Select Station to Review for individual temperature exceedance statistics'),
+                choices=unique(AUdata)$FDT_STA_ID,width='300px')})
+  
+  output$stationTempExceedanceRate <- renderTable({
+    req(AUdata,ns(input$stationTempExceedanceRateSelect))
+    z <- filter(AUdata,FDT_STA_ID %in% input$stationTempExceedanceRateSelect)
+    exceedance_temp(z) %>%
+      dplyr::select(nSamples,nExceedance,exceedanceRate)}) # don't give assessment determination for single station})
+  
+  # Temperature AU Exceedance Rate
+  output$tempExceedanceRate <- renderTable({
+    req(AUdata)
+    exceedance_temp(AUdata)})
+  
+}
 
 ui <- fluidPage(
   helpText('Review each site using the single site visualization section, then 
@@ -75,12 +117,8 @@ ui <- fluidPage(
     h4(strong('Single Station Data Visualization')),
     uiOutput('temperature_oneStationSelectionUI'),
     temperatureSubTabUI('temperature')),
-  br(),hr(),br()#,
-  #h5(strong("Temperature Exceedance Analysis")),
-  #fluidRow(
-  #  column(6,
-  #         h5('All temperature individual records or monthly geometric means that fall out of range are highlighted below.'),
-  #         tableOutput('temperatureRangeTable'))))
+  br(),hr(),br(),
+  temperatureExceedanceAnalysisUI('temperature_ExceedanceAnalysis')
 )
 
 server <- function(input,output,session){
@@ -94,6 +132,8 @@ server <- function(input,output,session){
     filter(AUData,FDT_STA_ID %in% input$temperature_oneStationSelection)})
   
   callModule(temperatureSubTab,'temperature',temperature_oneStation)
+  
+  callModule(temperatureExceedanceAnalysis,'temperature_ExceedanceAnalysis', AUData)
   
 }
 
