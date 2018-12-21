@@ -178,8 +178,12 @@ shinyServer(function(input, output, session) {
   ## Temperature Sub Tab ##------------------------------------------------------------------------------------------------------
   
   callModule(temperaturePlotlySingleStation,'temperature', AUData)
-  
   callModule(temperatureExceedanceAnalysis,'temperature_ExceedanceAnalysis', AUData)
+  
+  ## pH Sub Tab ##------------------------------------------------------------------------------------------------------
+  
+  callModule(pHPlotlySingleStation,'pH', AUData)
+  callModule(pHExceedanceAnalysis,'pH_ExceedanceAnalysis', AUData)
   
 })
 

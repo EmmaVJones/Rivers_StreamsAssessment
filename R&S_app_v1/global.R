@@ -14,6 +14,7 @@ library(RColorBrewer)
 # Bring in modules
 source('appModules/multipleDependentSelectizeArguments.R')
 source('appModules/temperatureModule.R')
+source('appModules/pHModule.R')
 
 # Loading screen
 load_data <- function() {
@@ -66,11 +67,11 @@ assessmentDetermination <- function(parameterDF,parameterAssessmentDF,parameter,
 
 
 
-#### Temperature Assessment Functions
+#### Temperature Assessment Functions ---------------------------------------------------------------------------------------------------
 
 #Max Temperature Exceedance Function
 temp_Assessment <- function(x){
-  temp <- dplyr::select(x,FDT_DATE_TIME,FDT_TEMP_CELCIUS, `Max Temperature (C)`)%>% # Just get relavent columns, 
+  temp <- dplyr::select(x,FDT_DATE_TIME,FDT_TEMP_CELCIUS, `Max Temperature (C)`)%>% # Just get relevant columns, 
     filter(!is.na(FDT_TEMP_CELCIUS))%>% #get rid of NA's
     mutate(TemperatureExceedance=ifelse(FDT_TEMP_CELCIUS > `Max Temperature (C)`,T,F))%>% # Identify where above max Temperature, 
     filter(TemperatureExceedance==TRUE) # Only return temp measures above threshold
@@ -79,7 +80,7 @@ temp_Assessment <- function(x){
 
 # Exceedance Rate Temperature
 exceedance_temp <- function(x){
-  temp <- dplyr::select(x,FDT_DATE_TIME,FDT_TEMP_CELCIUS,`Max Temperature (C)`)%>% # Just get relavent columns, 
+  temp <- dplyr::select(x,FDT_DATE_TIME,FDT_TEMP_CELCIUS,`Max Temperature (C)`)%>% # Just get relevant columns, 
     filter(!is.na(FDT_TEMP_CELCIUS)) #get rid of NA's
   temp_Assess <- temp_Assessment(x)
   
@@ -88,5 +89,27 @@ exceedance_temp <- function(x){
 }
 
 
-#### pH Assessment Functions
+#### pH Assessment Functions ---------------------------------------------------------------------------------------------------
 
+pH_rangeAssessment <- function(x){
+  pH <- dplyr::select(x,FDT_STA_ID,FDT_DATE_TIME,FDT_DEPTH,FDT_FIELD_PH,`pH Min`,`pH Max`)%>% # Just get relevant columns, 
+    filter(!is.na(FDT_FIELD_PH))%>% #get rid of NA's
+    rowwise()%>% mutate(interval=findInterval(FDT_FIELD_PH,c(`pH Min`,`pH Max`)))%>% # Identify where pH outside of assessment range
+    ungroup()%>%
+    mutate(pHrange=ifelse(interval==1,T,F))%>% # Highlight where pH doesn't fall into assessment range
+    filter(pHrange==FALSE)%>% # Only return pH measures outside of assessement range
+    dplyr::select(-c(interval,pHrange)) # Don't show user interval column, could be confusing to them, T/F in pHrange column sufficient
+  return(pH)
+}
+
+
+exceedance_pH <- function(x){
+  pH <- dplyr::select(x,FDT_STA_ID,FDT_DATE_TIME,FDT_DEPTH,FDT_FIELD_PH,`pH Min`,`pH Max`)%>% # Just get relavent columns, 
+    filter(!is.na(FDT_FIELD_PH)) #get rid of NA's
+  pH_rangeAssess <- pH_rangeAssessment(x)
+  pH_results <- assessmentDetermination(pH, pH_rangeAssess,"pH","Aquatic Life")
+  return(pH_results)
+}
+
+
+#### DO Assessment Functions ---------------------------------------------------------------------------------------------------

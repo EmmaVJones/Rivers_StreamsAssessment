@@ -102,7 +102,15 @@ shinyUI(fluidPage(theme="yeti.css",
                                                                          from ALL stations within the assessment unit.'))),
                                                     temperaturePlotlySingleStationUI('temperature'),
                                                     br(),hr(),br(),
-                                                    temperatureExceedanceAnalysisUI('temperature_ExceedanceAnalysis'))
+                                                    temperatureExceedanceAnalysisUI('temperature_ExceedanceAnalysis')),
+                                           tabPanel('pH',
+                                                    helpText('Review each site using the single site visualization section, then proceed to the bottom of the page 
+                                                             to find exceedance rate for the entire assessment unit.',br(), 
+                                                             span(strong('NOTE: The pH exceedance analysis results at the bottom of the page include data from 
+                                                                         ALL stations within the assessment unit.'))),
+                                                    pHPlotlySingleStationUI('pH'),
+                                                    br(),hr(),br(),
+                                                    pHExceedanceAnalysisUI('pH_ExceedanceAnalysis')     )
                                                     #wellPanel(
                                                     #  h4(strong('Single Station Data Visualization')),
                                                     #  uiOutput('temperature_oneStationSelectionUI'),

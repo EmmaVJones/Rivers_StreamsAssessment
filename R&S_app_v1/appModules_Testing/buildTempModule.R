@@ -4,7 +4,7 @@ source('testingDataset.R')
 
 #Max Temperature Exceedance Function
 temp_Assessment <- function(x){
-  temp <- dplyr::select(x,FDT_DATE_TIME,FDT_TEMP_CELCIUS, `Max Temperature (C)`)%>% # Just get relavent columns, 
+  temp <- dplyr::select(x,FDT_DATE_TIME,FDT_TEMP_CELCIUS, `Max Temperature (C)`)%>% # Just get relevant columns, 
     filter(!is.na(FDT_TEMP_CELCIUS))%>% #get rid of NA's
     mutate(TemperatureExceedance=ifelse(FDT_TEMP_CELCIUS > `Max Temperature (C)`,T,F))%>% # Identify where above max Temperature, 
     filter(TemperatureExceedance==TRUE) # Only return temp measures above threshold
@@ -13,7 +13,7 @@ temp_Assessment <- function(x){
 
 # Exceedance Rate Temperature
 exceedance_temp <- function(x){
-  temp <- dplyr::select(x,FDT_DATE_TIME,FDT_TEMP_CELCIUS,`Max Temperature (C)`)%>% # Just get relavent columns, 
+  temp <- dplyr::select(x,FDT_DATE_TIME,FDT_TEMP_CELCIUS,`Max Temperature (C)`)%>% # Just get relevant columns, 
     filter(!is.na(FDT_TEMP_CELCIUS)) #get rid of NA's
   temp_Assess <- temp_Assessment(x)
   
