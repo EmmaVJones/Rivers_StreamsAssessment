@@ -33,10 +33,10 @@ stationTable <- read_csv('data/BRRO_Sites_AU_WQS.csv')
 
 conventionals_HUC<- filter(conventionals, Huc6_Vahu6 %in% 'JM01') %>%
   left_join(dplyr::select(stationTable, FDT_STA_ID, SEC, CLASS, SPSTDS, ID305B_1, ID305B_2, ID305B_3), by='FDT_STA_ID')
-AUData <- filter(conventionals_HUC, ID305B_1 %in% 'VAW-H01R_JMS04A00' | 
-                   ID305B_2 %in% 'VAW-H01R_JMS04A00' | 
-                   ID305B_2 %in% 'VAW-H01R_JMS04A00')%>% 
-  left_join(WQSvalues, by = 'CLASS')
+#AUData <- filter(conventionals_HUC, ID305B_1 %in% 'VAW-H01R_JMS04A00' | 
+#                   ID305B_2 %in% 'VAW-H01R_JMS04A00' | 
+#                   ID305B_2 %in% 'VAW-H01R_JMS04A00')%>% 
+#  left_join(WQSvalues, by = 'CLASS')
 x <-filter(AUData, FDT_STA_ID %in% '2-JMS279.41') 
 
 
