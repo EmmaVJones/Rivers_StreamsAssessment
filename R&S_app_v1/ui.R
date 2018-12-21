@@ -111,20 +111,7 @@ shinyUI(fluidPage(theme="yeti.css",
                                                     pHPlotlySingleStationUI('pH'),
                                                     br(),hr(),br(),
                                                     pHExceedanceAnalysisUI('pH_ExceedanceAnalysis')     )
-                                                    #wellPanel(
-                                                    #  h4(strong('Single Station Data Visualization')),
-                                                    #  uiOutput('temperature_oneStationSelectionUI'),
-                                                    #  temperatureSubTabUI('temperature')),
-                                                    #br(),hr(),br(),
-                                                    #h5(strong("Temperature Exceedance Analysis")),
-                                                    #fluidRow(
-                                                    #  column(6,
-                                                    #         h5('All temperature records that exceed the threshold for the',span(strong('assessment unit')),' are highlighted below. 
-                                                    #            If no records are presented in the table below, then no data exceedes the temperature threshold.'),
-                                                    #         tableOutput('tempRangeTable')),
-                                                    #  column(6,
-                                                    #         wellPanel(
-                                                    #           h5('Station Exceedance Rate:')))))
+                                           
                                          )))
                     )))
 )
