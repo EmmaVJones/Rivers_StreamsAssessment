@@ -19,12 +19,12 @@ temperaturePlotlySingleStation <- function(input,output,session, AUdata){
   # Select One station for individual review
   output$temperature_oneStationSelectionUI <- renderUI({
     req(AUdata)
-    selectInput(ns('temperature_oneStationSelection'),strong('Select Station to Review'),choices=unique(AUdata)$FDT_STA_ID,width='300px')})
-  
+    selectInput(ns('temperature_oneStationSelection'),strong('Select Station to Review'),choices=unique(AUdata())$FDT_STA_ID,width='300px')})
+
   temperature_oneStation <- reactive({
     req(ns(input$temperature_oneStationSelection))
-    filter(AUdata,FDT_STA_ID %in% input$temperature_oneStationSelection)})
-  
+    filter(AUdata(),FDT_STA_ID %in% input$temperature_oneStationSelection)})
+
   output$Tempplotly <- renderPlotly({
     req(input$temperature_oneStationSelection, temperature_oneStation())
     dat <- mutate(temperature_oneStation(),top = `Max Temperature (C)`)
@@ -73,23 +73,23 @@ temperatureExceedanceAnalysis <- function(input, output, session, AUdata){
   # Temperature Raw Exceedance Results (all AU)
   output$tempRangeTable <- renderTable({
     req(AUdata)
-    temp_Assessment(AUdata)})
+    temp_Assessment(AUdata())})
   
   # Temperature Station Exceedance Rate
   output$stationTempExceedanceRateSelect_UI <- renderUI({
     req(AUdata)
     selectInput(ns('stationTempExceedanceRateSelect'),strong('Select Station to Review for individual temperature exceedance statistics'),
-                choices=unique(AUdata)$FDT_STA_ID,width='300px')})
+                choices=unique(AUdata())$FDT_STA_ID,width='300px')})
   
   output$stationTempExceedanceRate <- renderTable({
     req(input$stationTempExceedanceRateSelect)
-    z <- filter(AUdata,FDT_STA_ID %in% input$stationTempExceedanceRateSelect)
+    z <- filter(AUdata(),FDT_STA_ID %in% input$stationTempExceedanceRateSelect)
     exceedance_temp(z) %>%
       dplyr::select(nSamples,nExceedance,exceedanceRate)}) # don't give assessment determination for single station})
   
   # Temperature AU Exceedance Rate
   output$tempExceedanceRate <- renderTable({
     req(AUdata)
-    exceedance_temp(AUdata)})
+    exceedance_temp(AUdata())})
   
 }

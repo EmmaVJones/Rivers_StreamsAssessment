@@ -177,9 +177,9 @@ shinyServer(function(input, output, session) {
   
   ## Temperature Sub Tab ##------------------------------------------------------------------------------------------------------
   
-  callModule(temperaturePlotlySingleStation,'temperature', AUData())
+  callModule(temperaturePlotlySingleStation,'temperature', AUData)
   
-  callModule(temperatureExceedanceAnalysis,'temperature_ExceedanceAnalysis', AUData())
+  callModule(temperatureExceedanceAnalysis,'temperature_ExceedanceAnalysis', AUData)
   
   ## Select One station for individual review
   #output$temperature_oneStationSelectionUI <- renderUI({
