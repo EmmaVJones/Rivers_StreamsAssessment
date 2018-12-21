@@ -177,17 +177,21 @@ shinyServer(function(input, output, session) {
   
   ## Temperature Sub Tab ##------------------------------------------------------------------------------------------------------
   
-  # Select One station for individual review
-  output$temperature_oneStationSelectionUI <- renderUI({
-    req(AUData())
-    selectInput('temperature_oneStationSelection',strong('Select Station to Review'),choices=unique(AUData())$FDT_STA_ID,width='300px')})
+  callModule(temperaturePlotlySingleStation,'temperature', AUData())
+  
+  callModule(temperatureExceedanceAnalysis,'temperature_ExceedanceAnalysis', AUData())
+  
+  ## Select One station for individual review
+  #output$temperature_oneStationSelectionUI <- renderUI({
+  #  req(AUData())
+  #  selectInput('temperature_oneStationSelection',strong('Select Station to Review'),choices=unique(AUData())$FDT_STA_ID,width='300px')})
   
   
-  temperature_oneStation <- reactive({
-    req(input$temperature_oneStationSelection)
-    filter(AUData(),FDT_STA_ID %in% input$temperature_oneStationSelection)})
+  #temperature_oneStation <- reactive({
+  #  req(input$temperature_oneStationSelection)
+  #  filter(AUData(),FDT_STA_ID %in% input$temperature_oneStationSelection)})
   
-  callModule(temperatureSubTab,'temperature',temperature_oneStation)
+  #callModule(temperatureSubTab,'temperature',temperature_oneStation)
   
   
 })

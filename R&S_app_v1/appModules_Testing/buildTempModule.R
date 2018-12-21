@@ -42,12 +42,12 @@ temperaturePlotlySingleStation <- function(input,output,session, AUdata){
   
   # Select One station for individual review
   output$temperature_oneStationSelectionUI <- renderUI({
-    req(AUData)
-    selectInput(ns('temperature_oneStationSelection'),strong('Select Station to Review'),choices=unique(AUData)$FDT_STA_ID,width='300px')})
+    req(AUdata)
+    selectInput(ns('temperature_oneStationSelection'),strong('Select Station to Review'),choices=unique(AUdata)$FDT_STA_ID,width='300px')})
   
   temperature_oneStation <- reactive({
     req(ns(input$temperature_oneStationSelection))
-    filter(AUData,FDT_STA_ID %in% input$temperature_oneStationSelection)})
+    filter(AUdata,FDT_STA_ID %in% input$temperature_oneStationSelection)})
 
   output$Tempplotly <- renderPlotly({
     req(input$temperature_oneStationSelection, temperature_oneStation())
@@ -68,8 +68,7 @@ temperaturePlotlySingleStation <- function(input,output,session, AUdata){
   
   output$TempRangeTableSingleSite <- renderTable({
     req(temperature_oneStation())
-    z <- temp_Assessment(temperature_oneStation())
-    if(nrow(z)>0){return(z%>%dplyr::select(-FDT_STA_ID))}else{return(z)}    })
+    temp_Assessment(temperature_oneStation())})
 }
 
 temperatureExceedanceAnalysisUI <- function(id){
@@ -103,11 +102,11 @@ temperatureExceedanceAnalysis <- function(input, output, session, AUdata){
   # Temperature Station Exceedance Rate
   output$stationTempExceedanceRateSelect_UI <- renderUI({
     req(AUdata)
-    selectInput('stationTempExceedanceRateSelect',strong('Select Station to Review for individual temperature exceedance statistics'),
+    selectInput(ns('stationTempExceedanceRateSelect'),strong('Select Station to Review for individual temperature exceedance statistics'),
                 choices=unique(AUdata)$FDT_STA_ID,width='300px')})
   
   output$stationTempExceedanceRate <- renderTable({
-    req(AUdata,ns(input$stationTempExceedanceRateSelect))
+    req(input$stationTempExceedanceRateSelect)
     z <- filter(AUdata,FDT_STA_ID %in% input$stationTempExceedanceRateSelect)
     exceedance_temp(z) %>%
       dplyr::select(nSamples,nExceedance,exceedanceRate)}) # don't give assessment determination for single station})
