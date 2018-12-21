@@ -23,22 +23,35 @@ exceedance_temp <- function(x){
 
 
 
-temperatureSubTabUI <- function(id){
+temperaturePlotlySingleStationUI <- function(id){
   ns <- NS(id)
   tagList(
-    plotlyOutput(ns('Tempplotly')),
-    br(),hr(),br(),
-    h5('All temperature records that are above the criteria for the ',span(strong('selected site')),' are highlighted below.'),
-    div(style = 'height:150px;overflow-y: scroll', tableOutput(ns('TempRangeTableSingleSite')))
+    wellPanel(
+      h4(strong('Single Station Data Visualization')),
+      uiOutput(ns('temperature_oneStationSelectionUI')),
+      plotlyOutput(ns('Tempplotly')),
+      br(),hr(),br(),
+      h5('All temperature records that are above the criteria for the ',span(strong('selected site')),' are highlighted below.'),
+      div(style = 'height:150px;overflow-y: scroll', tableOutput(ns('TempRangeTableSingleSite')))
+    )
   )
 }
 
-temperatureSubTab <- function(input,output,session, oneStationData){
+temperaturePlotlySingleStation <- function(input,output,session, AUdata){
   ns <- session$ns
   
+  # Select One station for individual review
+  output$temperature_oneStationSelectionUI <- renderUI({
+    req(AUData)
+    selectInput(ns('temperature_oneStationSelection'),strong('Select Station to Review'),choices=unique(AUData)$FDT_STA_ID,width='300px')})
+  
+  temperature_oneStation <- reactive({
+    req(ns(input$temperature_oneStationSelection))
+    filter(AUData,FDT_STA_ID %in% input$temperature_oneStationSelection)})
+
   output$Tempplotly <- renderPlotly({
-    req(oneStationData)
-    dat <- mutate(oneStationData(),top = `Max Temperature (C)`)
+    req(input$temperature_oneStationSelection, temperature_oneStation())
+    dat <- mutate(temperature_oneStation(),top = `Max Temperature (C)`)
     dat$SampleDate <- as.POSIXct(dat$FDT_DATE_TIME2, format="%m/%d/%y")
     plot_ly(data=dat)%>%
       add_lines(x=~SampleDate,y=~top, mode='line',line = list(color = '#E50606'),
@@ -54,11 +67,9 @@ temperatureSubTab <- function(input,output,session, oneStationData){
   })
   
   output$TempRangeTableSingleSite <- renderTable({
-    req(oneStationData)
-    z <- temp_Assessment(oneStationData())
-    if(nrow(z)>0){return(z%>%dplyr::select(-FDT_STA_ID))}else{return(z)}
-    
-    })
+    req(temperature_oneStation())
+    z <- temp_Assessment(temperature_oneStation())
+    if(nrow(z)>0){return(z%>%dplyr::select(-FDT_STA_ID))}else{return(z)}    })
 }
 
 temperatureExceedanceAnalysisUI <- function(id){
@@ -113,25 +124,14 @@ ui <- fluidPage(
            proceed to the bottom of the page to find exceedance rate for the entire assessment unit.',br(),
            span(strong('NOTE: The temperature exceedance analysis results at the bottom of the page include data
                        from ALL stations within the assessment unit.'))),
-  wellPanel(
-    h4(strong('Single Station Data Visualization')),
-    uiOutput('temperature_oneStationSelectionUI'),
-    temperatureSubTabUI('temperature')),
+  temperaturePlotlySingleStationUI('temperature'),
   br(),hr(),br(),
   temperatureExceedanceAnalysisUI('temperature_ExceedanceAnalysis')
 )
 
 server <- function(input,output,session){
-  # Select One station for individual review
-  output$temperature_oneStationSelectionUI <- renderUI({
-    req(AUData)
-    selectInput('temperature_oneStationSelection',strong('Select Station to Review'),choices=unique(AUData)$FDT_STA_ID,width='300px')})
   
-  temperature_oneStation <- reactive({
-    req(input$temperature_oneStationSelection)
-    filter(AUData,FDT_STA_ID %in% input$temperature_oneStationSelection)})
-  
-  callModule(temperatureSubTab,'temperature',temperature_oneStation)
+  callModule(temperaturePlotlySingleStation,'temperature', AUData)
   
   callModule(temperatureExceedanceAnalysis,'temperature_ExceedanceAnalysis', AUData)
   
