@@ -1,21 +1,27 @@
 #library(shiny)
+
+start <- data.frame(station= 'test1', commentDate = 'date1', comment ='this is where we start')
+
 ui <- fluidPage(
   sidebarPanel(uiOutput('box'),
                #textAreaInput('commentBox', label = NULL, height = 275, 
                #               placeholder = 'Comments'),
                actionButton("update", "Update values")),
-  mainPanel(verbatimTextOutput("example"))
+  mainPanel(verbatimTextOutput("example"),
+            verbatimTextOutput("example2"))
 )
 
 server <- function(input, output) {
   
   # stores the current data frame, called by values() and set by values(new_data_table)
-  values <- reactiveVal(data.frame(station= 'test1', commentDate = 'date1', comment ='this is where we start'))
+  values <- reactiveVal(start)
   
-  output$box <- renderUI({ 
-    textAreaInput('commentBox', label = NULL, height = 275, value = filter(values(), station == 'test1'))
+  output$box <- observeEvent(input$update,{
+    renderUI({ 
+    textAreaInput('commentBox', label = NULL, height = 275, value = tail(values()$comment))
+                  #value = filter(values(), station == 'test1'))
     #placeholder = values()$a)
-  })
+  })})
   
   # update values table on button click
   observeEvent(input$update,{
@@ -40,6 +46,8 @@ server <- function(input, output) {
     #filter(values(), station == 'test1')
     return(tail(values(),1))
   })
+  
+  output$example2 <- renderPrint({return(values())})
   
 }
 
