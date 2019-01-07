@@ -8,6 +8,7 @@ stationTable <- read_csv('data/BRRO_Sites_AU_WQS.csv')
 #stationTable <- readRDS('data/BRROsites_ROA_sf.RDS')
 conventionals <- suppressWarnings(read_csv('data/CONVENTIONALS_20171010.csv'))
 conventionals$FDT_DATE_TIME2 <- as.POSIXct(conventionals$FDT_DATE_TIME, format="%m/%d/%Y %H:%M")
+commentList <- readRDS('Comments/commentList.RDS')
 
 mapviewOptions(basemaps = c( "OpenStreetMap",'Esri.WorldImagery'),
                vector.palette = colorRampPalette(brewer.pal(8, "Set1")),
@@ -33,13 +34,16 @@ shinyServer(function(input, output, session) {
   #  readRDS(inFile$datapath)
   #})
   
-  comments <- reactive({
-    req(input$commentFile)
-    inFile <- input$commentFile
-    read_csv(inFile$datapath) })
-  observe(userData$comments <- comments())
   
-##### NEEED TO FIX #######################################################################  
+  # Probably Delete
+  
+  #comments <- reactive({
+  #  req(input$commentFile)
+  #  inFile <- input$commentFile
+  #  read_csv(inFile$datapath) })
+  #observe(userData$comments <- comments())
+  
+##### NEED TO FIX #######################################################################  
   #output$stationTableMissingStations <- DT::renderDataTable({
   #  req(stationTable())
   #  # decide which region data was input from
@@ -154,6 +158,18 @@ shinyServer(function(input, output, session) {
               popup=NULL)
     map1@map
   })
+  
+  # Comment Commit
+  comments <- reactive({
+    commentList <- list(stationName = list(input$commentBox)) })
+    
+  
+  observeEvent(input$commentCommit,{
+    saveRDS(comments(),'Comments/commentList.RDS')
+     })
+  
+  output$commentTest <- renderPrint({commentList})
+  
   
   #### Data Sub Tab ####---------------------------------------------------------------------------------------------------
   
