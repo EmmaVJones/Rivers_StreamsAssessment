@@ -7,8 +7,12 @@ temperaturePlotlySingleStationUI <- function(id){
       uiOutput(ns('temperature_oneStationSelectionUI')),
       plotlyOutput(ns('Tempplotly')),
       br(),hr(),br(),
-      h5('All temperature records that are above the criteria for the ',span(strong('selected site')),' are highlighted below.'),
-      div(style = 'height:150px;overflow-y: scroll', tableOutput(ns('TempRangeTableSingleSite')))
+      fluidRow(
+        column(8, h5('All temperature records that are above the criteria for the ',span(strong('selected site')),' are highlighted below.'),
+               div(style = 'height:150px;overflow-y: scroll', tableOutput(ns('TempRangeTableSingleSite')))),
+        column(4, h5('Individual temperature exceedance statistics for the ',span(strong('selected site')),' are highlighted below.'),
+               tableOutput(ns("stationTempExceedanceRate")))
+      )
     )
   )
 }
@@ -45,21 +49,33 @@ temperaturePlotlySingleStation <- function(input,output,session, AUdata){
   output$TempRangeTableSingleSite <- renderTable({
     req(temperature_oneStation())
     temp_Assessment(temperature_oneStation())})
+  
+  # Temperature Station Exceedance Rate
+  output$stationTempExceedanceRate <- renderTable({
+    req(ns(input$temperature_oneStationSelection), temperature_oneStation())
+    exceedance_temp(temperature_oneStation()) %>%
+      dplyr::select(nSamples,nExceedance,exceedanceRate)}) # don't give assessment determination for single station})
+  
+    #req(input$stationTempExceedanceRateSelect)
+    #z <- filter(AUdata(),FDT_STA_ID %in% input$stationTempExceedanceRateSelect)
+    #exceedance_temp(z) %>%
+    #  dplyr::select(nSamples,nExceedance,exceedanceRate)}) # don't give assessment determination for single station})
+  
 }
 
 temperatureExceedanceAnalysisUI <- function(id){
   ns <- NS(id)
   tagList(
-    fluidRow(
-      column(6,
+    #fluidRow(
+      #column(6,
              h5('All temperature records that exceed the threshold for the',span(strong('assessment unit')),' are highlighted below. 
                 If no records are presented in the table below, then no data exceedes the temperature threshold.'),
-             tableOutput(ns('tempRangeTable'))),
-      column(6,
-             wellPanel(
-               h5('Station Exceedance Rate:'),
-               uiOutput(ns('stationTempExceedanceRateSelect_UI')),
-               tableOutput(ns("stationTempExceedanceRate")))))#,
+             tableOutput(ns('tempRangeTable'))#),
+     # column(6,
+             #wellPanel(
+               #h5('Station Exceedance Rate:'),
+               #uiOutput(ns('stationTempExceedanceRateSelect_UI')),
+               #tableOutput(ns("stationTempExceedanceRate")))))#,
              #hr(),
              #h5('Assessment Unit Exceedance Rate:'),
              #tableOutput(ns("tempExceedanceRate"))))
@@ -75,18 +91,18 @@ temperatureExceedanceAnalysis <- function(input, output, session, AUdata){
     req(AUdata)
     temp_Assessment(AUdata())})
   
-  # Temperature Station Exceedance Rate
-  output$stationTempExceedanceRateSelect_UI <- renderUI({
-    req(AUdata)
-    selectInput(ns('stationTempExceedanceRateSelect'),strong('Select Station to Review for individual temperature exceedance statistics'),
-                choices=unique(AUdata())$FDT_STA_ID,width='300px')})
+#  # Temperature Station Exceedance Rate
+#  output$stationTempExceedanceRateSelect_UI <- renderUI({
+ #   req(AUdata)
+  #  selectInput(ns('stationTempExceedanceRateSelect'),strong('Select Station to Review for individual temperature exceedance statistics'),
+  #              choices=unique(AUdata())$FDT_STA_ID,width='300px')})
   
-  output$stationTempExceedanceRate <- renderTable({
-    req(input$stationTempExceedanceRateSelect)
-    z <- filter(AUdata(),FDT_STA_ID %in% input$stationTempExceedanceRateSelect)
-    exceedance_temp(z) %>%
-      dplyr::select(nSamples,nExceedance,exceedanceRate)}) # don't give assessment determination for single station})
-  
+ # output$stationTempExceedanceRate <- renderTable({
+#    req(input$stationTempExceedanceRateSelect)
+#    z <- filter(AUdata(),FDT_STA_ID %in% input$stationTempExceedanceRateSelect)
+#    exceedance_temp(z) %>%
+#      dplyr::select(nSamples,nExceedance,exceedanceRate)}) # don't give assessment determination for single station})
+#  
   # Temperature AU Exceedance Rate
   #output$tempExceedanceRate <- renderTable({
   #  req(AUdata)

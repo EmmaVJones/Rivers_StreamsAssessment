@@ -6,8 +6,11 @@ pHPlotlySingleStationUI <- function(id){
       uiOutput(ns('pH_oneStationSelectionUI')),
       plotlyOutput(ns('pHplotly')),
       br(),hr(),br(),
-      h5('All pH records that are outside the criteria for the ',span(strong('selected site')),' are highlighted below.'),
-      div(style = 'height:150px;overflow-y: scroll', tableOutput(ns('pHRangeTableSingleSite')))
+      fluidRow(
+        column(8, h5('All pH records that are outside the criteria for the ',span(strong('selected site')),' are highlighted below.'),
+               div(style = 'height:150px;overflow-y: scroll', tableOutput(ns('pHRangeTableSingleSite')))),
+        column(4, h5('Individual pH exceedance statistics for the ',span(strong('selected site')),' are highlighted below.'),
+               tableOutput(ns("stationpHExceedanceRate"))))
     )
   )
 }
@@ -46,22 +49,28 @@ pHPlotlySingleStation <- function(input,output,session, AUdata){
   output$pHRangeTableSingleSite <- renderTable({
     req(pH_oneStation())
     pH_rangeAssessment(pH_oneStation())})
+  
+  output$stationpHExceedanceRate <- renderTable({
+    req(input$pH_oneStationSelection, pH_oneStation())
+    exceedance_pH(pH_oneStation()) %>%
+      dplyr::select(nSamples,nExceedance,exceedanceRate)}) # don't give assessment determination for single station})
+  
 }
 
 
 pHExceedanceAnalysisUI <- function(id){
   ns <- NS(id)
   tagList(
-    fluidRow(
-      column(6,
+    #fluidRow(
+     # column(6,
              h5('All pH records that are outside the range for the',span(strong('assessment unit')),' are highlighted below. 
                 If no records are presented in the table below, then no data falls outside the pH range.'),
-             tableOutput(ns('pHRangeTable'))),
-      column(6,
-             wellPanel(
-               h5('Station Exceedance Rate:'),
-               uiOutput(ns('stationpHExceedanceRateSelect_UI')),
-               tableOutput(ns("stationpHExceedanceRate")))))#,
+             tableOutput(ns('pHRangeTable'))#),
+      #column(6,
+      #       wellPanel(
+      #         h5('Station Exceedance Rate:'),
+      #         uiOutput(ns('stationpHExceedanceRateSelect_UI')),
+      #         tableOutput(ns("stationpHExceedanceRate")))))#,
              #hr(),
              #h5('Assessment Unit Exceedance Rate:'),
              #tableOutput(ns("pHExceedanceRate"))))
@@ -78,16 +87,16 @@ pHExceedanceAnalysis <- function(input, output, session, AUdata){
     pH_rangeAssessment(AUdata())})
   
   # pHStation Exceedance Rate
-  output$stationpHExceedanceRateSelect_UI <- renderUI({
-    req(AUdata)
-    selectInput(ns('stationpHExceedanceRateSelect'),strong('Select Station to Review for individual pH range statistics'),
-                choices=unique(AUdata())$FDT_STA_ID,width='300px')})
+  #output$stationpHExceedanceRateSelect_UI <- renderUI({
+  #  req(AUdata)
+  #  selectInput(ns('stationpHExceedanceRateSelect'),strong('Select Station to Review for individual pH range statistics'),
+  #              choices=unique(AUdata())$FDT_STA_ID,width='300px')})
   
-  output$stationpHExceedanceRate <- renderTable({
-    req(input$stationpHExceedanceRateSelect)
-    z <- filter(AUdata(),FDT_STA_ID %in% input$stationpHExceedanceRateSelect)
-    exceedance_pH(z) %>%
-      dplyr::select(nSamples,nExceedance,exceedanceRate)}) # don't give assessment determination for single station})
+  #output$stationpHExceedanceRate <- renderTable({
+  #  req(input$stationpHExceedanceRateSelect)
+  #  z <- filter(AUdata(),FDT_STA_ID %in% input$stationpHExceedanceRateSelect)
+  #  exceedance_pH(z) %>%
+  #    dplyr::select(nSamples,nExceedance,exceedanceRate)}) # don't give assessment determination for single station})
   
   # pH AU Exceedance Rate
   #output$pHExceedanceRate <- renderTable({
