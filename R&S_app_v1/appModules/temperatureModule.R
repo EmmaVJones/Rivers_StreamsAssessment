@@ -59,10 +59,10 @@ temperatureExceedanceAnalysisUI <- function(id){
              wellPanel(
                h5('Station Exceedance Rate:'),
                uiOutput(ns('stationTempExceedanceRateSelect_UI')),
-               tableOutput(ns("stationTempExceedanceRate"))),
-             hr(),
-             h5('Assessment Unit Exceedance Rate:'),
-             tableOutput(ns("tempExceedanceRate"))))
+               tableOutput(ns("stationTempExceedanceRate")))))#,
+             #hr(),
+             #h5('Assessment Unit Exceedance Rate:'),
+             #tableOutput(ns("tempExceedanceRate"))))
     
     )
 }
@@ -88,8 +88,8 @@ temperatureExceedanceAnalysis <- function(input, output, session, AUdata){
       dplyr::select(nSamples,nExceedance,exceedanceRate)}) # don't give assessment determination for single station})
   
   # Temperature AU Exceedance Rate
-  output$tempExceedanceRate <- renderTable({
-    req(AUdata)
-    exceedance_temp(AUdata())})
+  #output$tempExceedanceRate <- renderTable({
+  #  req(AUdata)
+  #  exceedance_temp(AUdata())})
   
 }

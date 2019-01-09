@@ -29,7 +29,7 @@ shinyUI(fluidPage(theme="yeti.css",
                                 #          h3('Tool Inputs'),
                                 #          p('In order to reduce processing time and facilitate peristent data storage, users must
                                 #            upload certain datasets that follow a specified template. These include their regional
-                                #            Stations Table 2.0 and Comment Files from any previous analysis session.'),
+                                #            Stations Table 2.0 and Regional Assessment Unit shapefiles.'),
                                 #          h5('Stations Table 2.0'),
                                 #          helpText('This dataset is derived before any Rivers and Streams Assessment Tool analysis 
                                 #                   procedures can commence using the ',span(strong('XXXXXX TOOL.')), 'After completing
@@ -38,6 +38,11 @@ shinyUI(fluidPage(theme="yeti.css",
                                 #                   the tool for analysis.'),
                                 #          fileInput('stationsTable','Choose your Regional Stations Table 2.0.',
                                 #                    accept = c(".csv")),
+                                #          h5('Regional Assessment Units'),
+                                #          helpText('This shapefile is the current working copy of the regional assessment units. It must
+                                #                    be uploaded to the app on startup and/or any time any spatial changes to assessment
+                                #                    units (split an assessment unit) are completed in ArcGIS to ensure the most up to 
+                                #                    date assessment unit information is being utlized by the app.'),
                                 #          fileInput('regionalAUshapefile','Choose your Regional Assessment Unit shapefile.',
                                 #                    accept = c(".dbf",".prj",".sbn",".sbx",".shp","shp.xml",".shx")),
                                 #          h5('Comment Files'),
@@ -81,11 +86,7 @@ shinyUI(fluidPage(theme="yeti.css",
                                          uiOutput('stationSelection_'),
                                          fluidRow(column(4, DT::dataTableOutput('stationInfo')),
                                                   column(4, leafletOutput('stationMap', height = 300, width = 300)),
-                                                  column(4,h4('Comments:'), 
-                                                         textAreaInput('commentBox', label = NULL, height = 275, 
-                                                                       placeholder = 'Comments'),
-                                                         actionButton('commentCommit','Save Comment'))),
-                                         verbatimTextOutput('commentTest'),
+                                                  column(4, DT::dataTableOutput('stationHistoricalInfo'))),
                                          hr(),
                                          tabsetPanel(
                                            tabPanel('Data',br(),

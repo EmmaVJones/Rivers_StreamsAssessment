@@ -61,10 +61,10 @@ pHExceedanceAnalysisUI <- function(id){
              wellPanel(
                h5('Station Exceedance Rate:'),
                uiOutput(ns('stationpHExceedanceRateSelect_UI')),
-               tableOutput(ns("stationpHExceedanceRate"))),
-             hr(),
-             h5('Assessment Unit Exceedance Rate:'),
-             tableOutput(ns("pHExceedanceRate"))))
+               tableOutput(ns("stationpHExceedanceRate")))))#,
+             #hr(),
+             #h5('Assessment Unit Exceedance Rate:'),
+             #tableOutput(ns("pHExceedanceRate"))))
     )
 }
 
@@ -90,8 +90,8 @@ pHExceedanceAnalysis <- function(input, output, session, AUdata){
       dplyr::select(nSamples,nExceedance,exceedanceRate)}) # don't give assessment determination for single station})
   
   # pH AU Exceedance Rate
-  output$pHExceedanceRate <- renderTable({
-    req(AUdata)
-    exceedance_pH(AUdata())})
+  #output$pHExceedanceRate <- renderTable({
+  #  req(AUdata)
+  #  exceedance_pH(AUdata())})
   
 }

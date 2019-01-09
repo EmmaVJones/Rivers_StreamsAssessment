@@ -140,8 +140,9 @@ shinyServer(function(input, output, session) {
   
   output$stationInfo <- DT::renderDataTable({ req(stationData())
     z <- filter(stationTable(), FDT_STA_ID == input$stationSelection) %>% 
-      t() %>% as.data.frame() %>% rename(`Station Information` = 1)
-    DT::datatable(z, options= list(pageLength = nrow(z), scrollY = "200px", dom='Bt'))  })
+      select(FDT_STA_ID:STA_CBP_NAME, `Point Unique Identifier`:Shape_Leng ) %>%
+      t() %>% as.data.frame() %>% rename(`Station and WQS Information` = 1)
+    DT::datatable(z, options= list(pageLength = nrow(z), scrollY = "250px", dom='t'))  })
   
   output$stationMap <- renderLeaflet({
     req(stationData())
@@ -159,16 +160,11 @@ shinyServer(function(input, output, session) {
     map1@map
   })
   
-  # Comment Commit
-  comments <- reactive({
-    commentList <- list(stationName = list(input$commentBox)) })
-    
-  
-  observeEvent(input$commentCommit,{
-    saveRDS(comments(),'Comments/commentList.RDS')
-     })
-  
-  output$commentTest <- renderPrint({commentList})
+  output$stationHistoricalInfo <- DT::renderDataTable({ req(stationData())
+    z <- filter(stationTable(), FDT_STA_ID == input$stationSelection) %>% 
+      select(STATION_ID:Notes) %>%
+      t() %>% as.data.frame() %>% rename(`Station Information From Last Cycle` = 1)
+    DT::datatable(z, options= list(pageLength = nrow(z), scrollY = "250px", dom='t'))  })
   
   
   #### Data Sub Tab ####---------------------------------------------------------------------------------------------------
