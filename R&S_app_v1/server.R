@@ -9,6 +9,7 @@ stationTable <- read_csv('data/BRRO_Sites_AU_WQS.csv')
 conventionals <- suppressWarnings(read_csv('data/CONVENTIONALS_20171010.csv'))
 conventionals$FDT_DATE_TIME2 <- as.POSIXct(conventionals$FDT_DATE_TIME, format="%m/%d/%Y %H:%M")
 #commentList <- readRDS('Comments/commentList.RDS')
+monStationTemplate <- read_excel('data/tbl_ir_mon_stations_template.xlsx') # from X:\2018_Assessment\StationsDatabase\VRO
 
 mapviewOptions(basemaps = c( "OpenStreetMap",'Esri.WorldImagery'),
                vector.palette = colorRampPalette(brewer.pal(8, "Set1")),
@@ -22,8 +23,8 @@ shinyServer(function(input, output, session) {
   # display the loading feature until data loads into app
   load_data()
   
-  # Reactive Value to store all user data
-  userData <- reactiveValues()
+  # Reactive Value to store all site data
+  siteData <- reactiveValues()
   
   ## Data Upload Tab
   stationTable <- reactive({read_csv('data/BRRO_Sites_AU_WQS.csv')})#readRDS('data/BRROsites_ROA_sf.RDS')})
@@ -166,12 +167,28 @@ shinyServer(function(input, output, session) {
       t() %>% as.data.frame() %>% rename(`Station Information From Last Cycle` = 1)
     DT::datatable(z, options= list(pageLength = nrow(z), scrollY = "250px", dom='t'))  })
   
+  ## Station Table View Section
+  observe(siteData$Temp <- exceedance_temp(stationData()) %>% dplyr::select(nSamples,nExceedance,exceedanceRate))
+  observe(siteData$pH <- exceedance_pH(stationData()) %>% dplyr::select(nSamples,nExceedance,exceedanceRate))
+  observe(siteData$DO <- exceedance_DO(stationData()) %>% dplyr::select(nSamples,nExceedance,exceedanceRate))
+  
+  output$stationTableDataSummary <- DT::renderDataTable({
+    req(stationData())
+    z <- data.frame(StationID = unique(stationData()$FDT_STA_ID)) 
+    z <- cbind(z, siteData$Temp)
+    datatable(monStationTemplate, extensions = 'Buttons', escape=F, rownames = F,
+              options= list(scrollX = TRUE, pageLength = nrow(z),
+                            dom='Bt', buttons=list('copy',
+                                                    list(extend='csv',filename=paste('AssessmentResults_',paste(assessmentCycle,input$stationSelection, collapse = "_"),Sys.Date(),sep='')),
+                                                    list(extend='excel',filename=paste('AssessmentResults_',paste(assessmentCycle,input$stationSelection, collapse = "_"),Sys.Date(),sep='')))))
+  })
+  
   
   #### Data Sub Tab ####---------------------------------------------------------------------------------------------------
   
   # Display Data 
   output$AURawData <- DT::renderDataTable({ AUData()
-    DT::datatable(AUData(), extensions = 'Buttons', escape=F, rownames = F,
+    DT::datatable(AUData(), extensions = 'Buttons', escape=F, rownames = F, editable = TRUE,
                   options= list(scrollX = TRUE, pageLength = nrow(AUData()), scrollY = "300px", 
                                 dom='Btf', buttons=list('copy',
                                                         list(extend='csv',filename=paste('AUData_',paste(input$stationSelection, collapse = "_"),Sys.Date(),sep='')),

@@ -15,7 +15,7 @@ shinyUI(fluidPage(theme="yeti.css",
                                  ".shiny-output-error { visibility: hidden; }",
                                  ".shiny-output-error:before { visibility: hidden; }"
                       ),
-                      navbarPage("VDEQ 2020 Rivers and Streams Assessment Tool",
+                      navbarPage(paste("VDEQ ",assessmentCycle," Rivers and Streams Assessment Tool", sep=''),
                                  #tabPanel('Data Upload',
                                 #          h3('Tool Overview'),
                                 #          p("The Rivers and Streams Assessment Tool is designed to expedite analysis, assessment
@@ -88,6 +88,12 @@ shinyUI(fluidPage(theme="yeti.css",
                                                   column(4, leafletOutput('stationMap', height = 300, width = 300)),
                                                   column(4, DT::dataTableOutput('stationHistoricalInfo'))),
                                          hr(),
+                                         h3('Station Results for Review'),
+                                         helpText('This table outputs the site specific results for direct export to the Station Table. It also serves to highlight
+                                                  where exceedances are present and should be reviewed in the individual parameter visualization tabs below.'),
+                                         DT::dataTableOutput('stationTableDataSummary'),
+                                         br(),hr(),br(),
+                                         h3('Assessment Unit Raw Data Review and Visualization'),
                                          tabsetPanel(
                                            tabPanel('Data',br(),
                                                     DT::dataTableOutput('AURawData'),

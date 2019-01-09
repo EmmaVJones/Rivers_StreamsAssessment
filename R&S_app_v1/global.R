@@ -15,6 +15,7 @@ library(RColorBrewer)
 source('appModules/multipleDependentSelectizeArguments.R')
 source('appModules/temperatureModule.R')
 source('appModules/pHModule.R')
+source('appModules/DOModule.R')
 
 # Loading screen
 load_data <- function() {
@@ -26,6 +27,7 @@ load_data <- function() {
 #####################################   UPDATE EACH NEW TOOL REBUILD #############################################
 # Establish Assessment Period 
 assessmentPeriod <- as.POSIXct(c("2013-01-01 00:00:00 UTC","2018-12-31 23:59:59 UTC"),tz='UTC')
+assessmentCycle <- '2020'
 ##################################################################################################################
 
 
@@ -114,6 +116,29 @@ exceedance_pH <- function(x){
 
 #### DO Assessment Functions ---------------------------------------------------------------------------------------------------
 
+# DO exceedance function
+DO_Assessment_Min <- function(x){ 
+  dplyr::select(x,FDT_STA_ID,FDT_DATE_TIME, FDT_DATE_TIME2,FDT_DEPTH,DO,`Dissolved Oxygen Min (mg/L)`,`Dissolved Oxygen Daily Avg (mg/L)`)%>% # Just get relevant columns, 
+    filter(!is.na(DO)) %>% 
+    mutate(DOExceedanceMin=ifelse(DO < `Dissolved Oxygen Min (mg/L)`,T,F))%>% # Identify where above max Temperature, 9VAC25-260-50 ClassIII= 32C
+    filter(DOExceedanceMin==TRUE) %>% # Only return DO measures below threshold
+    dplyr::select(-c(DOExceedanceMin,FDT_DATE_TIME2,`Dissolved Oxygen Daily Avg (mg/L)`)) # Don't show user column, could be confusing to them
+}
+
+# Daily Average exceedance function
+DO_Assessment_DailyAvg <- function(x){ 
+  dplyr::select(x,FDT_STA_ID,FDT_DATE_TIME, FDT_DATE_TIME2,FDT_DEPTH,DO,`Dissolved Oxygen Min (mg/L)`,`Dissolved Oxygen Daily Avg (mg/L)`)%>% # Just get relevant columns, 
+    filter(!is.na(DO)) %>% #get rid of NA's
+    mutate(date = as.Date(FDT_DATE_TIME2, format="%m/%d/%Y")) %>% 
+    group_by(date) %>%
+    mutate(n_Samples_Daily = n()) %>% # how many samples per day?
+    filter(n_Samples_Daily > 1) %>%
+    mutate(DO_DailyAverage = mean(DO), DOExceedanceDailyAvg=ifelse(DO_DailyAverage < `Dissolved Oxygen Daily Avg (mg/L)`,T,F)) %>% # Identify where above max Temperature, 9VAC25-260-50 ClassIII= 32C
+    ungroup() %>% 
+    filter( DOExceedanceDailyAvg==TRUE) %>% # Only return DO measures below threshold
+    dplyr::select(-c(FDT_DATE_TIME2, `Dissolved Oxygen Min (mg/L)`,date))
+}
+
 # Exceedance Rate DO, for all samples
 exceedance_DO <- function(x){
   DO <- dplyr::select(x,FDT_STA_ID,FDT_DATE_TIME, FDT_DATE_TIME2,FDT_DEPTH,DO,`Dissolved Oxygen Min (mg/L)`,`Dissolved Oxygen Daily Avg (mg/L)`)%>% # Just get relevant columns, 
@@ -135,3 +160,4 @@ exceedance_DO_DailyAvg <- function(x){
   DO_results <- assessmentDetermination(DO %>% distinct(date),DO_Assess,"Dissolved Oxygen Daily Average","Aquatic Life")
   return(DO_results)
 }
+
