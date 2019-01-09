@@ -10,8 +10,8 @@ AUData <- filter(conventionals_HUC, ID305B_1 %in% 'VAW-H01R_JMS04A00' |
 x <-filter(AUData, FDT_STA_ID %in% '2-JMS279.41') 
 #------------------------------------------------------------------------------------------
 
-#parameterDataset <- temp
-#parameter <- 'TEMP'
+#parameterDataset <- pH
+#parameter <- 'PH'
 
 quickStats <- function(parameterDataset, parameter){
   results <- data.frame(SAMP = nrow(parameterDataset),
@@ -43,4 +43,16 @@ tempExceedances <- function(x){
   quickStats(temp, 'TEMP')
 }
 
-tempExceedances(x)
+#tempExceedances(x)
+
+pHExceedances <- function(x){
+  pH <- dplyr::select(x,FDT_DATE_TIME,FDT_FIELD_PH,`pH Min`,`pH Max`)%>% # Just get relevant columns, 
+    filter(!is.na(FDT_FIELD_PH))%>% #get rid of NA's
+    rowwise() %>% mutate(interval=findInterval(FDT_FIELD_PH,c(`pH Min`,`pH Max`)))%>% # Identify where pH outside of assessment range
+    ungroup()%>%
+    mutate(exceeds=ifelse(interval == 1, F, T)) # Highlight where pH doesn't fall into assessment range
+    
+  quickStats(pH, 'PH')
+}
+
+#pHExceedances(x)
