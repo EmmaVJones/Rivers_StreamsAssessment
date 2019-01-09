@@ -6,53 +6,182 @@ AUData <- filter(conventionals_HUC, ID305B_1 %in% 'VAW-H01R_JMS04A00' |
   left_join(WQSvalues, by = 'CLASS')
 
 x <-filter(AUData, FDT_STA_ID %in% '2-JMS279.41') 
-
+# Testing dataset for daily averages
+xtest <-x
+xtest$FDT_DATE_TIME2[2] <- '2011-01-31 12:30:00'
+xtest$FDT_DATE_TIME2[3] <- '2011-01-31 13:30:00'
+xtest$FDT_DATE_TIME2[4] <- '2011-01-31 14:30:00'
+xtest$FDT_DATE_TIME2[6] <- '2011-04-26 14:30:00'
+xtest$FDT_DATE_TIME2[7] <- '2011-04-26 15:30:00'
+xtest$FDT_DATE_TIME2[8] <- '2011-04-26 16:30:00'
 
 
 
 #Min DO Exceedance Function ###############
 
-##########################  NEED TO DEAL WITH DAILY AVERAGE MIN   ##################################
-DO_Assessment <- function(x){ 
-  DO <- dplyr::select(x,FDT_STA_ID,FDT_DATE_TIME,FDT_DEPTH,DO,`Dissolved Oxygen Min (mg/L)`,`Dissolved Oxygen Daily Avg (mg/L)`)%>% # Just get relevant columns, 
-    filter(!is.na(DO))%>% #get rid of NA's
+DO_Assessment_Min <- function(x){ 
+  dplyr::select(x,FDT_STA_ID,FDT_DATE_TIME, FDT_DATE_TIME2,FDT_DEPTH,DO,`Dissolved Oxygen Min (mg/L)`,`Dissolved Oxygen Daily Avg (mg/L)`)%>% # Just get relevant columns, 
+    filter(!is.na(DO)) %>% 
     mutate(DOExceedanceMin=ifelse(DO < `Dissolved Oxygen Min (mg/L)`,T,F))%>% # Identify where above max Temperature, 9VAC25-260-50 ClassIII= 32C
-    filter(DOExceedance==TRUE) # Only return temp measures above threshold
-  
-  DO$FDT_DATE_TIME <- as.character(DO$FDT_DATE_TIME2)
-  DO <- dplyr::select(DO,-c(DOExceedance,FDT_DATE_TIME2)) # Don't show user column, could be confusing to them
-  
-  return(DO)
+    filter(DOExceedanceMin==TRUE) %>% # Only return DO measures below threshold
+    dplyr::select(-c(DOExceedanceMin,FDT_DATE_TIME2,`Dissolved Oxygen Daily Avg (mg/L)`)) # Don't show user column, could be confusing to them
+}
+#DO_Assessment_Min(x)
+
+# Daily Average exceedance function
+DO_Assessment_DailyAvg <- function(x){ 
+  dplyr::select(x,FDT_STA_ID,FDT_DATE_TIME, FDT_DATE_TIME2,FDT_DEPTH,DO,`Dissolved Oxygen Min (mg/L)`,`Dissolved Oxygen Daily Avg (mg/L)`)%>% # Just get relevant columns, 
+    filter(!is.na(DO)) %>% #get rid of NA's
+    mutate(date = as.Date(FDT_DATE_TIME2, format="%m/%d/%Y")) %>% 
+    group_by(date) %>%
+    mutate(n_Samples_Daily = n()) %>% # how many samples per day?
+    filter(n_Samples_Daily > 1) %>%
+    mutate(DO_DailyAverage = mean(DO), DOExceedanceDailyAvg=ifelse(DO_DailyAverage < `Dissolved Oxygen Daily Avg (mg/L)`,T,F)) %>% # Identify where above max Temperature, 9VAC25-260-50 ClassIII= 32C
+    ungroup() %>% 
+    filter( DOExceedanceDailyAvg==TRUE) %>% # Only return DO measures below threshold
+    dplyr::select(-c(FDT_DATE_TIME2, `Dissolved Oxygen Min (mg/L)`,date))
 }
 
-# Exceedance Rate DO
-exceedance_DO <- function(x, qualifier){
-  DO <- dplyr::select(x,FDT_STA_ID,FDT_DATE_TIME,FDT_DEPTH,DO,LakeStratification)%>% # Just get relevant columns, 
-    filter(!is.na(DO))%>% #get rid of NA's
-    filter(LakeStratification %in% qualifier)
-  ##filter(LakeStratification %in% c("Epilimnion",NA)) # Only assess Epilimnion or NaN (no stratification)
-  ##filter(LakeStratification=="Epilimnion") # Only assess Epilimnion
-  DO_Assess <- DO_Assessment(x,qualifier)
+#DO_Assessment_DailyAvg(xtest)
+
+# Exceedance Rate DO, for all samples
+exceedance_DO <- function(x){
+  DO <- dplyr::select(x,FDT_STA_ID,FDT_DATE_TIME, FDT_DATE_TIME2,FDT_DEPTH,DO,`Dissolved Oxygen Min (mg/L)`,`Dissolved Oxygen Daily Avg (mg/L)`)%>% # Just get relevant columns, 
+    filter(!is.na(DO)) #get rid of NA's
+  DO_Assess <- DO_Assessment_Min(x)
   DO_results <- assessmentDetermination(DO,DO_Assess,"Dissolved Oxygen","Aquatic Life")
   return(DO_results)
 }
 
-#Max Temperature Exceedance Function
-temp_Assessment <- function(x){
-  temp <- dplyr::select(x,FDT_DATE_TIME,FDT_TEMP_CELCIUS, `Max Temperature (C)`)%>% # Just get relevant columns, 
-    filter(!is.na(FDT_TEMP_CELCIUS))%>% #get rid of NA's
-    mutate(TemperatureExceedance=ifelse(FDT_TEMP_CELCIUS > `Max Temperature (C)`,T,F))%>% # Identify where above max Temperature, 
-    filter(TemperatureExceedance==TRUE) # Only return temp measures above threshold
-  return(temp)
+# Exceedance Rate DO, for daily average samples
+exceedance_DO_DailyAvg <- function(x){
+  DO <- dplyr::select(x,FDT_STA_ID,FDT_DATE_TIME, FDT_DATE_TIME2,FDT_DEPTH,DO,`Dissolved Oxygen Min (mg/L)`,`Dissolved Oxygen Daily Avg (mg/L)`)%>% # Just get relevant columns, 
+    filter(!is.na(DO)) %>% #get rid of NA's
+    mutate(date = as.Date(FDT_DATE_TIME2, format="%m/%d/%Y")) %>% 
+    group_by(date) %>%
+    mutate(n_Samples_Daily = n()) %>% # how many samples per day?
+    filter(n_Samples_Daily > 1)  # only keep days with > 1 sample 
+  DO_Assess <- suppressMessages(DO_Assessment_DailyAvg(x))
+  DO_results <- assessmentDetermination(DO %>% distinct(date),DO_Assess,"Dissolved Oxygen Daily Average","Aquatic Life")
+  return(DO_results)
 }
 
-# Exceedance Rate Temperature
-exceedance_temp <- function(x){
-  temp <- dplyr::select(x,FDT_DATE_TIME,FDT_TEMP_CELCIUS,`Max Temperature (C)`)%>% # Just get relevant columns, 
-    filter(!is.na(FDT_TEMP_CELCIUS)) #get rid of NA's
-  temp_Assess <- temp_Assessment(x)
-  
-  temp_results <- assessmentDetermination(temp,temp_Assess,"temperature","Aquatic Life")
-  return(temp_results)
+#exceedance_DO_DailyAvg(xtest)
+
+DOPlotlySingleStationUI <- function(id){
+  ns <- NS(id)
+  tagList(
+    wellPanel(
+      h4(strong('Single Station Data Visualization')),
+      uiOutput(ns('DO_oneStationSelectionUI')),
+      plotlyOutput(ns('DOplotly')),
+      br(),hr(),br(),
+      fluidRow(
+        column(8, h5('All DO records that are outside the criteria for the ',span(strong('selected site')),' are highlighted below.'),
+               div(style = 'height:350px;overflow-y: scroll', 
+                   h6('All Dissolved Oxygen Measures'),tableOutput(ns('DOMinTableSingleSite')), br(), hr(), br(),
+                   h6('All Daily Average Dissolved Oxygen Measures'),tableOutput(ns('DODailyAverageTableSingleSite')))),
+        column(4, h5('Individual DO exceedance statistics for the ',span(strong('selected site')),' are highlighted below.'),
+               h6('All Dissolved Oxygen Measures'), tableOutput(ns("stationDOExceedanceRate")),
+               h6('All Daily Average Dissolved Oxygen Measures'),tableOutput(ns("stationDO_DailyAverageExceedanceRate"))))
+    )
+  )
 }
+
+DOPlotlySingleStation <- function(input,output,session, AUdata){
+  ns <- session$ns
+  
+  # Select One station for individual review
+  output$DO_oneStationSelectionUI <- renderUI({
+    req(AUdata)
+    selectInput(ns('DO_oneStationSelection'),strong('Select Station to Review'),choices=unique(AUdata())$FDT_STA_ID,width='300px')})
+  
+  DO_oneStation <- reactive({
+    req(ns(input$DO_oneStationSelection))
+    filter(AUdata(),FDT_STA_ID %in% input$DO_oneStationSelection)})
+  
+  output$DOplotly <- renderPlotly({
+    req(input$DO_oneStationSelection, DO_oneStation())
+    dat <- mutate(DO_oneStation(), bottom = `Dissolved Oxygen Min (mg/L)`)
+    dat$SampleDate <- as.POSIXct(dat$FDT_DATE_TIME2, format="%m/%d/%y")
+    plot_ly(data=dat)%>%
+      add_lines(x=~SampleDate,y=~bottom, mode='line',line = list(color = '#E50606'),
+                hoverinfo = "none", name="DO Standard") %>%
+      add_markers(x= ~SampleDate, y= ~DO,mode = 'scatter', name="DO (mg/L)",
+                  hoverinfo="text",text=~paste(sep="<br>",
+                                               paste("Date: ",SampleDate),
+                                               paste("Depth: ",FDT_DEPTH, "m"),
+                                               paste("DO: ",DO," (mg/L)")))%>%
+      layout(showlegend=FALSE,
+             yaxis=list(title="DO (unitless)"),
+             xaxis=list(title="Sample Date",tickfont = list(size = 10)))
+  })
+  
+  output$DOMinTableSingleSite <- renderTable({
+    req(DO_oneStation())
+    DO_Assessment_Min(DO_oneStation())})
+  
+  output$DODailyAverageTableSingleSite <- renderTable({
+    req(DO_oneStation())
+    DO_Assessment_DailyAvg(DO_oneStation())})
+  
+  output$stationDOExceedanceRate <- renderTable({
+    req(input$DO_oneStationSelection, DO_oneStation())
+    exceedance_DO(DO_oneStation()) %>%
+      dplyr::select(nSamples,nExceedance,exceedanceRate)}) # don't give assessment determination for single station})
+  
+  output$stationDO_DailyAverageExceedanceRate <- renderTable({
+    req(input$DO_oneStationSelection, DO_oneStation())
+    exceedance_DO_DailyAvg(DO_oneStation()) %>%
+      dplyr::select(nSamples,nExceedance,exceedanceRate)}) # don't give assessment determination for single station})
+}
+
+DOExceedanceAnalysisUI <- function(id){
+  ns <- NS(id)
+  tagList(
+    h5('All DO records that are outside the criteria for the',span(strong('assessment unit')),' are highlighted below. 
+       If no records are presented in the table below, then no data falls below the DO minimum.'),
+    tableOutput(ns('DOMinTableAU')), br(), hr(), br(), 
+    tableOutput(ns('DODailyAverageTableAU'))
+    )
+}
+
+
+DOExceedanceAnalysis <- function(input, output, session, AUdata){
+  ns <- session$ns
+  
+  # DO Raw Exceedance Results (all AU)
+  output$DOMinTableAU <- renderTable({
+    req(AUdata)
+    DO_Assessment_Min(AUdata())})
+  
+  # DO Raw DAILY AVERAGE Exceedance Results (all AU)
+  output$DODailyAverageTableAU <- renderTable({
+    req(AUdata)
+    DO_Assessment_DailyAvg(AUdata())})
+}
+
+ui <- fluidPage(
+  helpText('Review each site using the single site visualization section, then 
+           proceed to the bottom of the page to find exceedance rate for the entire assessment unit.',br(),
+           span(strong('NOTE: The DO exceedance analysis results at the bottom of the page include data
+                       from ALL stations within the assessment unit.'))),
+  DOPlotlySingleStationUI('DO'),
+  br(),hr(),br(),
+  DOExceedanceAnalysisUI('DO_ExceedanceAnalysis')     
+)
+
+server <- function(input,output,session){
+  
+  AUData <- reactive({filter(conventionals_HUC, ID305B_1 %in% 'VAW-H01R_JMS04A00' | 
+                               ID305B_2 %in% 'VAW-H01R_JMS04A00' | 
+                               ID305B_2 %in% 'VAW-H01R_JMS04A00')%>% 
+      left_join(WQSvalues, by = 'CLASS')})
+  
+  callModule(DOPlotlySingleStation,'DO', AUData)
+  
+  callModule(DOExceedanceAnalysis,'DO_ExceedanceAnalysis', AUData)
+}
+
+shinyApp(ui,server)
 

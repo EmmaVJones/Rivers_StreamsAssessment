@@ -113,3 +113,25 @@ exceedance_pH <- function(x){
 
 
 #### DO Assessment Functions ---------------------------------------------------------------------------------------------------
+
+# Exceedance Rate DO, for all samples
+exceedance_DO <- function(x){
+  DO <- dplyr::select(x,FDT_STA_ID,FDT_DATE_TIME, FDT_DATE_TIME2,FDT_DEPTH,DO,`Dissolved Oxygen Min (mg/L)`,`Dissolved Oxygen Daily Avg (mg/L)`)%>% # Just get relevant columns, 
+    filter(!is.na(DO)) #get rid of NA's
+  DO_Assess <- DO_Assessment_Min(x)
+  DO_results <- assessmentDetermination(DO,DO_Assess,"Dissolved Oxygen","Aquatic Life")
+  return(DO_results)
+}
+
+# Exceedance Rate DO, for daily average samples
+exceedance_DO_DailyAvg <- function(x){
+  DO <- dplyr::select(x,FDT_STA_ID,FDT_DATE_TIME, FDT_DATE_TIME2,FDT_DEPTH,DO,`Dissolved Oxygen Min (mg/L)`,`Dissolved Oxygen Daily Avg (mg/L)`)%>% # Just get relevant columns, 
+    filter(!is.na(DO)) %>% #get rid of NA's
+    mutate(date = as.Date(FDT_DATE_TIME2, format="%m/%d/%Y")) %>% 
+    group_by(date) %>%
+    mutate(n_Samples_Daily = n()) %>% # how many samples per day?
+    filter(n_Samples_Daily > 1)  # only keep days with > 1 sample 
+  DO_Assess <- suppressMessages(DO_Assessment_DailyAvg(x))
+  DO_results <- assessmentDetermination(DO %>% distinct(date),DO_Assess,"Dissolved Oxygen Daily Average","Aquatic Life")
+  return(DO_results)
+}

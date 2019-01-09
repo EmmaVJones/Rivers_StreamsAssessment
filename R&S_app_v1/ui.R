@@ -113,7 +113,15 @@ shinyUI(fluidPage(theme="yeti.css",
                                                                          ALL stations within the assessment unit.'))),
                                                     pHPlotlySingleStationUI('pH'),
                                                     br(),hr(),br(),
-                                                    pHExceedanceAnalysisUI('pH_ExceedanceAnalysis')     )
+                                                    pHExceedanceAnalysisUI('pH_ExceedanceAnalysis')),
+                                           tabPanel("DO",
+                                                    helpText('Review each site using the single site visualization section, then proceed to the bottom of the page 
+                                                             to find exceedance rate for the entire assessment unit.',br(),
+                                                             span(strong('NOTE: The DO exceedance analysis results at the bottom of the page include data from ALL 
+                                                                         stations within the assessment unit.'))),
+                                                    DOPlotlySingleStationUI('DO'),
+                                                    br(),hr(),br(),
+                                                    DOExceedanceAnalysisUI('DO_ExceedanceAnalysis'))
                                            
                                          )))
                     )))
