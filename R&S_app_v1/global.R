@@ -9,14 +9,14 @@ library(plotly)
 library(DT)
 library(readxl)
 library(RColorBrewer)
-library(lubridate)
 library(FSA)
+library(lubridate)
 library(magrittr)
 
 # Bring in modules
 source('appModules/multipleDependentSelectizeArguments.R')
 
-modulesToReadIn <- c('temperature','pH','DO','SpCond','Salinity')
+modulesToReadIn <- c('temperature','pH','DO','SpCond','Salinity','TN')
 for (i in 1:length(modulesToReadIn)){
   source(paste('appModules/',modulesToReadIn[i],'Module.R',sep=''))
 }

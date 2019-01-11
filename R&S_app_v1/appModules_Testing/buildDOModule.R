@@ -68,6 +68,11 @@ exceedance_DO_DailyAvg <- function(x){
 
 #exceedance_DO_DailyAvg(xtest)
 
+
+
+
+
+
 DOPlotlySingleStationUI <- function(id){
   ns <- NS(id)
   tagList(
@@ -104,15 +109,29 @@ DOPlotlySingleStation <- function(input,output,session, AUdata){
     req(input$DO_oneStationSelection, DO_oneStation())
     dat <- mutate(DO_oneStation(), bottom = `Dissolved Oxygen Min (mg/L)`)
     dat$SampleDate <- as.POSIXct(dat$FDT_DATE_TIME2, format="%m/%d/%y")
+    
+    box1 <- data.frame(x = c(min(dat$SampleDate), min(dat$SampleDate), max(dat$SampleDate),max(dat$SampleDate)), y = c(10, 18, 18, 10))
+    box2 <- data.frame(x = c(min(dat$SampleDate), min(dat$SampleDate), max(dat$SampleDate),max(dat$SampleDate)), y = c(8, 10, 10, 8))
+    box3 <- data.frame(x = c(min(dat$SampleDate), min(dat$SampleDate), max(dat$SampleDate),max(dat$SampleDate)), y = c(7, 8, 8, 7))
+    box4 <- data.frame(x = c(min(dat$SampleDate), min(dat$SampleDate), max(dat$SampleDate),max(dat$SampleDate)), y = c(0, 7, 7, 0))
+    
     plot_ly(data=dat)%>%
-      add_lines(x=~SampleDate,y=~bottom, mode='line',line = list(color = '#E50606'),
+      add_polygons(data = box1, x = ~x, y = ~y, fillcolor = "#0072B2",opacity=0.6, line = list(width = 0),
+                   hoverinfo="text", name =paste('no probability of stress to aquatic life')) %>%
+      add_polygons(data = box2, x = ~x, y = ~y, fillcolor = "#009E73",opacity=0.6, line = list(width = 0),
+                   hoverinfo="text", name =paste('low probability of stress to aquatic life')) %>%
+      add_polygons(data = box3, x = ~x, y = ~y, fillcolor = "#F0E442",opacity=0.6, line = list(width = 0),
+                   hoverinfo="text", name =paste('medium probability of stress to aquatic life')) %>%
+      add_polygons(data = box4, x = ~x, y = ~y, fillcolor = "firebrick",opacity=0.6, line = list(width = 0),
+                   hoverinfo="text", name =paste('high probability of stress to aquatic life')) %>%
+      add_lines(data = dat, x=~SampleDate,y=~bottom, mode='line', line = list(color = 'black'),
                 hoverinfo = "none", name="DO Standard") %>%
-      add_markers(x= ~SampleDate, y= ~DO,mode = 'scatter', name="DO (mg/L)",
+      add_markers(data = dat, x= ~SampleDate, y= ~DO,mode = 'scatter', name="DO (mg/L)", marker = list(color= '#535559'),
                   hoverinfo="text",text=~paste(sep="<br>",
                                                paste("Date: ",SampleDate),
                                                paste("Depth: ",FDT_DEPTH, "m"),
                                                paste("DO: ",DO," (mg/L)")))%>%
-      layout(showlegend=FALSE,
+      layout(showlegend=FALSE,  
              yaxis=list(title="DO (unitless)"),
              xaxis=list(title="Sample Date",tickfont = list(size = 10)))
   })

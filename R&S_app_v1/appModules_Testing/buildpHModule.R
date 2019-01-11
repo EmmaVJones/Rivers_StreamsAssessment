@@ -58,12 +58,24 @@ pHPlotlySingleStation <- function(input,output,session, AUdata){
     req(input$pH_oneStationSelection, pH_oneStation())
     dat <- mutate(pH_oneStation(),top = `pH Max`, bottom = `pH Min`)
     dat$SampleDate <- as.POSIXct(dat$FDT_DATE_TIME2, format="%m/%d/%y")
+    
+    box1 <- data.frame(x = c(min(dat$SampleDate), min(dat$SampleDate), max(dat$SampleDate),max(dat$SampleDate)), y = c(9, 14, 14, 9))
+    box2 <- data.frame(x = c(min(dat$SampleDate), min(dat$SampleDate), max(dat$SampleDate),max(dat$SampleDate)), y = c(6, 9, 9, 6))
+    box3 <- data.frame(x = c(min(dat$SampleDate), min(dat$SampleDate), max(dat$SampleDate),max(dat$SampleDate)), y = c(0, 6, 6, 0))
+    
     plot_ly(data=dat)%>%
-      add_lines(x=~SampleDate,y=~top, mode='line',line = list(color = '#E50606'),
+      add_polygons(data = box1, x = ~x, y = ~y, fillcolor = "#F0E442",opacity=0.6, line = list(width = 0),
+                   hoverinfo="text", name =paste('Medium Probability of Stress to Aquatic Life')) %>%
+      add_polygons(data = box2, x = ~x, y = ~y, fillcolor = "#009E73",opacity=0.6, line = list(width = 0),
+                   hoverinfo="text", name =paste('Low Probability of Stress to Aquatic Life')) %>%
+      add_polygons(data = box3, x = ~x, y = ~y, fillcolor = "#F0E442",opacity=0.6, line = list(width = 0),
+                   hoverinfo="text", name =paste('Medium Probability of Stress to Aquatic Life')) %>%
+      
+      add_lines(data=dat, x=~SampleDate,y=~top, mode='line',line = list(color = 'black'),
                 hoverinfo = "none", name="pH Standard") %>%
-      add_lines(x=~SampleDate,y=~bottom, mode='line',line = list(color = '#E50606'),
+      add_lines(data=dat, x=~SampleDate,y=~bottom, mode='line',line = list(color = 'black'),
                 hoverinfo = "none", name="pH Standard") %>%
-      add_markers(x= ~SampleDate, y= ~FDT_FIELD_PH,mode = 'scatter', name="pH (unitless)",
+      add_markers(data=dat, x= ~SampleDate, y= ~FDT_FIELD_PH,mode = 'scatter', name="pH (unitless)",  marker = list(color= '#535559'),
                   hoverinfo="text",text=~paste(sep="<br>",
                                                paste("Date: ",SampleDate),
                                                paste("Depth: ",FDT_DEPTH, "m"),

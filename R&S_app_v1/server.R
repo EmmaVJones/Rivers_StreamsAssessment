@@ -2,14 +2,14 @@
 source('global.R')
 source('AUshapefileLocation.R')
 
-assessmentLayer <- st_read('GIS/AssessmentRegions_VA84_basins.shp') %>%
-  st_transform( st_crs(4326)) 
-stationTable <- read_csv('data/BRRO_Sites_AU_WQS.csv')
-stationTable <- readRDS('data/BRROsites_ROA_sf.RDS')
-conventionals <- suppressWarnings(read_csv('data/CONVENTIONALS_20171010.csv'))
-conventionals$FDT_DATE_TIME2 <- as.POSIXct(conventionals$FDT_DATE_TIME, format="%m/%d/%Y %H:%M")
-#commentList <- readRDS('Comments/commentList.RDS')
-monStationTemplate <- read_excel('data/tbl_ir_mon_stations_template.xlsx') # from X:\2018_Assessment\StationsDatabase\VRO
+#assessmentLayer <- st_read('GIS/AssessmentRegions_VA84_basins.shp') %>%
+#  st_transform( st_crs(4326)) 
+#stationTable <- read_csv('data/BRRO_Sites_AU_WQS.csv')
+#stationTable <- readRDS('data/BRROsites_ROA_sf.RDS')
+#conventionals <- suppressWarnings(read_csv('data/CONVENTIONALS_20171010.csv'))
+#conventionals$FDT_DATE_TIME2 <- as.POSIXct(conventionals$FDT_DATE_TIME, format="%m/%d/%Y %H:%M")
+##commentList <- readRDS('Comments/commentList.RDS')
+#monStationTemplate <- read_excel('data/tbl_ir_mon_stations_template.xlsx') # from X:\2018_Assessment\StationsDatabase\VRO
 
 mapviewOptions(basemaps = c( "OpenStreetMap",'Esri.WorldImagery'),
                vector.palette = colorRampPalette(brewer.pal(8, "Set1")),
@@ -223,33 +223,8 @@ shinyServer(function(input, output, session) {
   
   ## Salinity Sub Tab ##------------------------------------------------------------------------------------------------------
   callModule(salinityPlotlySingleStation,'salinity', AUData, stationSelected)
+  
+  ## Total Nitrogen Sub Tab ##------------------------------------------------------------------------------------------------------
+  callModule(TNPlotlySingleStation,'TN', AUData, stationSelected)
 })
-
-
-#output$table <- renderPrint({
-#  req(stationData())
-#  stationData()  })
-
-
-
-# Station Map, didn't use module bc could not figure it out with sf 
-#output$VAmap <- renderLeaflet({
-#  names(st_geometry(assessmentLayer)) = NULL
-
-#  leaflet(assessmentLayer) %>% setView(-79.2,37.7,zoom=7)%>%
-#    addProviderTiles(providers$OpenStreetMap,group='Open Street Map')%>%
-#    addProviderTiles(providers$Esri.WorldImagery,group='Esri World Imagery')%>%
-#    addProviderTiles(providers$Stamen.TerrainBackground,group='Stamen Terrain Background')%>%
-#    addPolygons(data=assessmentLayer,color='yellow',fill=0.1,stroke=0.1,group="Virginia HUC6",
-#                popup = popupTable(assessmentLayer,zcol=c(1,2,5,13,22)))
-#    addLayersControl(baseGroups=c('Open Street Map','Esri World Imagery','Stamen Terrain Background'),
-#                     overlayGroups=c("Virginia HUC6"),
-#                     options=layersControlOptions(collapsed=T),
-#                     position='topleft')%>%
-#    mapview::addMouseCoordinates(style='basic')
-#  
-#})
-
-
-
 

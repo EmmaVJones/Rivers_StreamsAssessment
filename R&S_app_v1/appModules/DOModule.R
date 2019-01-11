@@ -36,10 +36,25 @@ DOPlotlySingleStation <- function(input,output,session, AUdata, stationSelectedA
     req(input$DO_oneStationSelection, DO_oneStation())
     dat <- mutate(DO_oneStation(), bottom = `Dissolved Oxygen Min (mg/L)`)
     dat$SampleDate <- as.POSIXct(dat$FDT_DATE_TIME2, format="%m/%d/%y")
-    plot_ly(data=dat)%>%
-      add_lines(x=~SampleDate,y=~bottom, mode='line',line = list(color = '#E50606'),
+    
+    maxheight <- ifelse(max(dat$DO, na.rm=T) < 10, 12, max(dat$DO, na.rm=T)* 1.2)
+    box1 <- data.frame(SampleDate = c(min(dat$SampleDate), min(dat$SampleDate), max(dat$SampleDate),max(dat$SampleDate)), y = c(10, maxheight, maxheight, 10))
+    box2 <- data.frame(x = c(min(dat$SampleDate), min(dat$SampleDate), max(dat$SampleDate),max(dat$SampleDate)), y = c(8, 10, 10, 8))
+    box3 <- data.frame(x = c(min(dat$SampleDate), min(dat$SampleDate), max(dat$SampleDate),max(dat$SampleDate)), y = c(7, 8, 8, 7))
+    box4 <- data.frame(x = c(min(dat$SampleDate), min(dat$SampleDate), max(dat$SampleDate),max(dat$SampleDate)), y = c(0, 7, 7, 0))
+
+    plot_ly(data=box1)%>%
+      add_polygons(x = ~SampleDate, y = ~y, data = box1, fillcolor = "#0072B2",opacity=0.6, line = list(width = 0),
+                   hoverinfo="text", name =paste('No Probability of Stress to Aquatic Life')) %>%
+      add_polygons(data = box2, x = ~x, y = ~y, fillcolor = "#009E73",opacity=0.6, line = list(width = 0),
+                   hoverinfo="text", name =paste('Low Probability of Stress to Aquatic Life')) %>%
+      add_polygons(data = box3, x = ~x, y = ~y, fillcolor = "#F0E442",opacity=0.6, line = list(width = 0),
+                   hoverinfo="text", name =paste('Medium Probability of Stress to Aquatic Life')) %>%
+      add_polygons(data = box4, x = ~x, y = ~y, fillcolor = "firebrick",opacity=0.6, line = list(width = 0),
+                   hoverinfo="text", name =paste('High Probability of Stress to Aquatic Life')) %>%
+      add_lines(data=dat, x=~SampleDate,y=~bottom, mode='line', line = list(color = 'black'),
                 hoverinfo = "none", name="DO Standard") %>%
-      add_markers(x= ~SampleDate, y= ~DO,mode = 'scatter', name="DO (mg/L)",
+      add_markers(data=dat, x= ~SampleDate, y= ~DO,mode = 'scatter', name="DO (mg/L)", marker = list(color= '#535559'),
                   hoverinfo="text",text=~paste(sep="<br>",
                                                paste("Date: ",SampleDate),
                                                paste("Depth: ",FDT_DEPTH, "m"),
