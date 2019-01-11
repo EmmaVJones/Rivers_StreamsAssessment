@@ -16,7 +16,7 @@ library(magrittr)
 # Bring in modules
 source('appModules/multipleDependentSelectizeArguments.R')
 
-modulesToReadIn <- c('temperature','pH','DO','SpCond','Salinity','TN')
+modulesToReadIn <- c('temperature','pH','DO','SpCond','Salinity','TN','Ecoli')
 for (i in 1:length(modulesToReadIn)){
   source(paste('appModules/',modulesToReadIn[i],'Module.R',sep=''))
 }
@@ -164,6 +164,47 @@ exceedance_DO_DailyAvg <- function(x){
   DO_Assess <- suppressMessages(DO_Assessment_DailyAvg(x))
   DO_results <- assessmentDetermination(DO %>% distinct(date),DO_Assess,"Dissolved Oxygen Daily Average","Aquatic Life")
   return(DO_results)
+}
+
+
+#### E.coli OLD Assessment Functions ---------------------------------------------------------------------------------------------------
+
+bacteria_ExceedancesGeomeanOLD <- function(x){
+  suppressWarnings(mutate(x, SampleDate = format(FDT_DATE_TIME2,"%m/%d/%y"), # Separate sampling events by day
+                          previousSample=lag(SampleDate,1),previousSampleECOLI=lag(E.COLI,1)) %>% # Line up previous sample with current sample line
+                     rowwise() %>% 
+                     mutate(sameSampleMonth= as.numeric(strsplit(SampleDate,'/')[[1]][1])  -  as.numeric(strsplit(previousSample,'/')[[1]][1])) %>% # See if sample months are the same, e.g. more than one sample per calendar month
+                     filter(sameSampleMonth == 0 | is.na(sameSampleMonth)) %>% # keep only rows with multiple samples per calendar month  or no previous sample (NA) to then test for geomean
+                     # USING CALENDAR MONTH BC THAT'S HOW WRITTEN IN GUIDANCE, rolling 4 wk windows would have been more appropriate
+                     mutate(sampleMonthYear = paste(month(as.Date(SampleDate,"%m/%d/%y")),year(as.Date(SampleDate,"%m/%d/%y")),sep='/')) %>% # grab sample month and year to group_by() for next analysis
+                     group_by(sampleMonthYear) %>%
+                     mutate(geoMeanCalendarMonth = FSA::geomean(as.numeric(E.COLI)), # Calculate geomean
+                            limit = 126, samplesPerMonth = n()))
+}
+
+bacteria_ExceedancesSTV_OLD <- function(x){                                    
+  x %>% rename(parameter = !!names(.[2])) %>% # rename columns to make functions easier to apply
+    mutate(limit = 235, exceeds = ifelse(parameter > limit, T, F)) # Single Sample Maximum 
+}
+
+
+
+bacteria_Assessment_OLD <- function(x){
+  bacteria <- dplyr::select(x,FDT_DATE_TIME2,E.COLI)%>% # Just get relavent columns, 
+    filter(!is.na(E.COLI)) #get rid of NA's
+  # Geomean Analysis (if enough n)
+  bacteriaGeomean <- bacteria_ExceedancesGeomeanOLD(bacteria) %>%     
+    distinct(sampleMonthYear, .keep_all = T) %>%
+    filter(samplesPerMonth > 4, geoMeanCalendarMonth > limit) %>% # minimum sampling rule for geomean to apply
+    mutate(exceeds = TRUE) %>%
+    select(sampleMonthYear, geoMeanCalendarMonth, limit, exceeds, samplesPerMonth)
+  geomeanResults <- quickStats(bacteriaGeomean, 'ECOLI') %>% mutate(ECOLI_STAT = recode(ECOLI_STAT, 'Review' = 'Review if ECOLI_VIO > 1' ),
+                                                                    `Assessment Method` = 'Old Monthly Geomean')
+  
+  # Single Sample Maximum Analysis
+  bacteriaSSM <- bacteria_ExceedancesSTV_OLD(bacteria) 
+  SSMresults <- quickStats(bacteriaSSM, 'ECOLI') %>% mutate(`Assessment Method` = 'Old Single Sample Maximum')
+  return( rbind(geomeanResults, SSMresults) )
 }
 
 

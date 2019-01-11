@@ -36,9 +36,9 @@ temperaturePlotlySingleStation <- function(input,output,session, AUdata, station
     dat <- mutate(temperature_oneStation(),top = `Max Temperature (C)`)
     dat$SampleDate <- as.POSIXct(dat$FDT_DATE_TIME2, format="%m/%d/%y")
     plot_ly(data=dat)%>%
-      add_lines(x=~SampleDate,y=~top, mode='line',line = list(color = '#E50606'),
+      add_lines(x=~SampleDate,y=~top, mode='line',line = list(color = 'black'),
                 hoverinfo = "none", name="Temperature Standard") %>%
-      add_markers(x= ~SampleDate, y= ~FDT_TEMP_CELCIUS,mode = 'scatter', name="Temperature (Celsius)",
+      add_markers(x= ~SampleDate, y= ~FDT_TEMP_CELCIUS,mode = 'scatter', name="Temperature (Celsius)",marker = list(color= '#535559'),
                   hoverinfo="text",text=~paste(sep="<br>",
                                                paste("Date: ",SampleDate),
                                                paste("Depth: ",FDT_DEPTH, "m"),

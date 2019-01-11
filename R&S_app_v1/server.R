@@ -226,5 +226,8 @@ shinyServer(function(input, output, session) {
   
   ## Total Nitrogen Sub Tab ##------------------------------------------------------------------------------------------------------
   callModule(TNPlotlySingleStation,'TN', AUData, stationSelected)
+  
+  ## E.coli Sub Tab ##------------------------------------------------------------------------------------------------------
+  callModule(EcoliPlotlySingleStation,'Ecoli', AUData, stationSelected)
 })
 
