@@ -9,13 +9,15 @@ SpCondPlotlySingleStationUI <- function(id){
 }
 
 
-SpCondPlotlySingleStation <- function(input,output,session, AUdata){
+SpCondPlotlySingleStation <- function(input,output,session, AUdata, stationSelectedAbove){
   ns <- session$ns
   
   # Select One station for individual review
   output$SpCond_oneStationSelectionUI <- renderUI({
     req(AUdata)
-    selectInput(ns('SpCond_oneStationSelection'),strong('Select Station to Review'),choices=unique(AUdata())$FDT_STA_ID,width='300px')})
+    selectInput(ns('SpCond_oneStationSelection'),strong('Select Station to Review'),
+                choices= sort(unique(c(stationSelectedAbove(),AUdata()$FDT_STA_ID))), # Change this based on stationSelectedAbove
+                width='300px', selected = stationSelectedAbove())})
   
   SpCond_oneStation <- reactive({
     req(ns(input$SpCond_oneStationSelection))

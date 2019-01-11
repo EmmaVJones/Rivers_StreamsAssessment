@@ -18,13 +18,15 @@ DOPlotlySingleStationUI <- function(id){
   )
 }
 
-DOPlotlySingleStation <- function(input,output,session, AUdata){
+DOPlotlySingleStation <- function(input,output,session, AUdata, stationSelectedAbove){
   ns <- session$ns
   
   # Select One station for individual review
   output$DO_oneStationSelectionUI <- renderUI({
     req(AUdata)
-    selectInput(ns('DO_oneStationSelection'),strong('Select Station to Review'),choices=unique(AUdata())$FDT_STA_ID,width='300px')})
+    selectInput(ns('DO_oneStationSelection'),strong('Select Station to Review'),
+                choices= sort(unique(c(stationSelectedAbove(),AUdata()$FDT_STA_ID))), # Change this based on stationSelectedAbove
+                width='300px', selected = stationSelectedAbove())})
   
   DO_oneStation <- reactive({
     req(ns(input$DO_oneStationSelection))

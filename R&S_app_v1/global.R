@@ -15,10 +15,12 @@ library(magrittr)
 
 # Bring in modules
 source('appModules/multipleDependentSelectizeArguments.R')
-source('appModules/temperatureModule.R')
-source('appModules/pHModule.R')
-source('appModules/DOModule.R')
-source('appModules/SpCondModule.R')
+
+modulesToReadIn <- c('temperature','pH','DO','SpCond','Salinity')
+for (i in 1:length(modulesToReadIn)){
+  source(paste('appModules/',modulesToReadIn[i],'Module.R',sep=''))
+}
+
 
 # Loading screen
 load_data <- function() {

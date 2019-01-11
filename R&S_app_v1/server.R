@@ -2,14 +2,14 @@
 source('global.R')
 source('AUshapefileLocation.R')
 
-#assessmentLayer <- st_read('GIS/AssessmentRegions_VA84_basins.shp') %>%
-#  st_transform( st_crs(4326)) 
-#stationTable <- read_csv('data/BRRO_Sites_AU_WQS.csv')
-#stationTable <- readRDS('data/BRROsites_ROA_sf.RDS')
-#conventionals <- suppressWarnings(read_csv('data/CONVENTIONALS_20171010.csv'))
-#conventionals$FDT_DATE_TIME2 <- as.POSIXct(conventionals$FDT_DATE_TIME, format="%m/%d/%Y %H:%M")
-##commentList <- readRDS('Comments/commentList.RDS')
-#monStationTemplate <- read_excel('data/tbl_ir_mon_stations_template.xlsx') # from X:\2018_Assessment\StationsDatabase\VRO
+assessmentLayer <- st_read('GIS/AssessmentRegions_VA84_basins.shp') %>%
+  st_transform( st_crs(4326)) 
+stationTable <- read_csv('data/BRRO_Sites_AU_WQS.csv')
+stationTable <- readRDS('data/BRROsites_ROA_sf.RDS')
+conventionals <- suppressWarnings(read_csv('data/CONVENTIONALS_20171010.csv'))
+conventionals$FDT_DATE_TIME2 <- as.POSIXct(conventionals$FDT_DATE_TIME, format="%m/%d/%Y %H:%M")
+#commentList <- readRDS('Comments/commentList.RDS')
+monStationTemplate <- read_excel('data/tbl_ir_mon_stations_template.xlsx') # from X:\2018_Assessment\StationsDatabase\VRO
 
 mapviewOptions(basemaps = c( "OpenStreetMap",'Esri.WorldImagery'),
                vector.palette = colorRampPalette(brewer.pal(8, "Set1")),
@@ -201,22 +201,28 @@ shinyServer(function(input, output, session) {
     req(AUData())
     withinAssessmentPeriod(AUData())})
   
+  # Need this as a reactive to regenerate below modules when user changes station 
+  stationSelected <- reactive({input$stationSelection})
+  
   ## Temperature Sub Tab ##------------------------------------------------------------------------------------------------------
   
-  callModule(temperaturePlotlySingleStation,'temperature', AUData)
+  callModule(temperaturePlotlySingleStation,'temperature', AUData, stationSelected)
   callModule(temperatureExceedanceAnalysis,'temperature_ExceedanceAnalysis', AUData)
   
   ## pH Sub Tab ##------------------------------------------------------------------------------------------------------
   
-  callModule(pHPlotlySingleStation,'pH', AUData)
+  callModule(pHPlotlySingleStation,'pH', AUData, stationSelected)
   callModule(pHExceedanceAnalysis,'pH_ExceedanceAnalysis', AUData)
   
   ## DO Sub Tab ##------------------------------------------------------------------------------------------------------
-  callModule(DOPlotlySingleStation,'DO', AUData)
+  callModule(DOPlotlySingleStation,'DO', AUData, stationSelected)
   callModule(DOExceedanceAnalysis,'DO_ExceedanceAnalysis', AUData)
   
   ## Specific Conductance Sub Tab ##------------------------------------------------------------------------------------------------------
-  callModule(SpCondPlotlySingleStation,'SpCond', AUData)
+  callModule(SpCondPlotlySingleStation,'SpCond', AUData, stationSelected)
+  
+  ## Salinity Sub Tab ##------------------------------------------------------------------------------------------------------
+  callModule(salinityPlotlySingleStation,'salinity', AUData, stationSelected)
 })
 
 

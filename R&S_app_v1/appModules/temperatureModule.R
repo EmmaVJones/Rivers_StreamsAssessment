@@ -17,13 +17,15 @@ temperaturePlotlySingleStationUI <- function(id){
   )
 }
 
-temperaturePlotlySingleStation <- function(input,output,session, AUdata){
+temperaturePlotlySingleStation <- function(input,output,session, AUdata, stationSelectedAbove){
   ns <- session$ns
   
   # Select One station for individual review
   output$temperature_oneStationSelectionUI <- renderUI({
     req(AUdata)
-    selectInput(ns('temperature_oneStationSelection'),strong('Select Station to Review'),choices=unique(AUdata())$FDT_STA_ID,width='300px')})
+    selectInput(ns('temperature_oneStationSelection'),strong('Select Station to Review'),
+                choices= sort(unique(c(stationSelectedAbove(),AUdata()$FDT_STA_ID))), # Change this based on stationSelectedAbove
+                width='300px', selected = stationSelectedAbove())})
 
   temperature_oneStation <- reactive({
     req(ns(input$temperature_oneStationSelection))
