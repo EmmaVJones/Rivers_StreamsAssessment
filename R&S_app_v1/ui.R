@@ -95,42 +95,67 @@ shinyUI(fluidPage(theme="yeti.css",
                                          br(),hr(),br(),
                                          h3('Assessment Unit Raw Data Review and Visualization'),
                                          tabsetPanel(
-                                           tabPanel('Data',br(),
-                                                    DT::dataTableOutput('AURawData'),
-                                                    h4('Data Summary'),
-                                                    h5('Records Retrieved in Assessment Unit:'),
-                                                    fluidRow(column(1),column(10,textOutput('stationDataTableRecords'))),
-                                                    h5('Field and Lab Data in Assessment Window:'),
-                                                    fluidRow(column(1),column(10,tableOutput('uniqueStationDataTableRecords'))),
-                                                    h5('Assessment Window:'),
-                                                    fluidRow(column(1),column(10,textOutput('stationDataTableAssessmentWindow'))), br(),br()),
-                                           tabPanel('Temperature',
-                                                    helpText('Review each site using the single site visualization section, then 
+                                           tabPanel('Conventionals Data',
+                                                    tabsetPanel(
+                                                      tabPanel('Raw Data',br(),
+                                                               DT::dataTableOutput('AURawData'),
+                                                               h4('Data Summary'),
+                                                               h5('Records Retrieved in Assessment Unit:'),
+                                                               fluidRow(column(1),column(10,textOutput('stationDataTableRecords'))),
+                                                               h5('Field and Lab Data in Assessment Window:'),
+                                                               fluidRow(column(1),column(10,tableOutput('uniqueStationDataTableRecords'))),
+                                                               h5('Assessment Window:'),
+                                                               fluidRow(column(1),column(10,textOutput('stationDataTableAssessmentWindow'))), br(),br()),
+                                                      tabPanel('Temperature',
+                                                               helpText('Review each site using the single site visualization section, then 
                                                              proceed to the bottom of the page to find exceedance rate for the entire assessment unit.',br(),
-                                                             span(strong('NOTE: The temperature exceedance analysis results at the bottom of the page include data
+                                                                        span(strong('NOTE: The temperature exceedance analysis results at the bottom of the page include data
                                                                          from ALL stations within the assessment unit.'))),
-                                                    temperaturePlotlySingleStationUI('temperature'),
-                                                    br(),hr(),br(),
-                                                    temperatureExceedanceAnalysisUI('temperature_ExceedanceAnalysis')),
-                                           tabPanel('pH',
-                                                    helpText('Review each site using the single site visualization section, then proceed to the bottom of the page 
+                                                               temperaturePlotlySingleStationUI('temperature'),
+                                                               br(),hr(),br(),
+                                                               temperatureExceedanceAnalysisUI('temperature_ExceedanceAnalysis')),
+                                                      tabPanel('pH',
+                                                               helpText('Review each site using the single site visualization section, then proceed to the bottom of the page 
                                                              to find exceedance rate for the entire assessment unit.',br(), 
-                                                             span(strong('NOTE: The pH exceedance analysis results at the bottom of the page include data from 
+                                                                        span(strong('NOTE: The pH exceedance analysis results at the bottom of the page include data from 
                                                                          ALL stations within the assessment unit.'))),
-                                                    pHPlotlySingleStationUI('pH'),
-                                                    br(),hr(),br(),
-                                                    pHExceedanceAnalysisUI('pH_ExceedanceAnalysis')),
-                                           tabPanel("DO",
-                                                    helpText('Review each site using the single site visualization section, then proceed to the bottom of the page 
+                                                               pHPlotlySingleStationUI('pH'),
+                                                               br(),hr(),br(),
+                                                               pHExceedanceAnalysisUI('pH_ExceedanceAnalysis')),
+                                                      tabPanel("DO",
+                                                               helpText('Review each site using the single site visualization section, then proceed to the bottom of the page 
                                                              to find exceedance rate for the entire assessment unit.',br(),
-                                                             span(strong('NOTE: The DO exceedance analysis results at the bottom of the page include data from ALL 
+                                                                        span(strong('NOTE: The DO exceedance analysis results at the bottom of the page include data from ALL 
                                                                          stations within the assessment unit.'))),
-                                                    DOPlotlySingleStationUI('DO'),
-                                                    br(),hr(),br(),
-                                                    DOExceedanceAnalysisUI('DO_ExceedanceAnalysis'))
+                                                               DOPlotlySingleStationUI('DO'),
+                                                               br(),hr(),br(),
+                                                               DOExceedanceAnalysisUI('DO_ExceedanceAnalysis')),
+                                                      tabPanel("Specific Conductance",
+                                                               helpText('Review each site using the single site visualization section. There are no WQS for Specific Conductivity.'),
+                                                               SpCondPlotlySingleStationUI('SpCond')),
+                                                      tabPanel("Salinity"),
+                                                      tabPanel("Nitrogen"),
+                                                      tabPanel("Ammonia"),
+                                                      tabPanel("NH3"),
+                                                      tabPanel("Phosphorus"),
+                                                      tabPanel("Fecal Coliform"),
+                                                      tabPanel("E Coli"),
+                                                      tabPanel("Enterococci"),
+                                                      tabPanel("Chlorophyll a"),
+                                                      tabPanel("SSC"),
+                                                      tabPanel("Nitrite"),
+                                                      tabPanel("Chloride"),
+                                                      tabPanel("Sulfate")
+                                                      )),
+                                           tabPanel('EDAS Data', br(), br(), br(), h4('Placeholder'),br(), br(), br()),
+                                           tabPanel('Metals Data', br(), br(), br(), h4('Placeholder'),br(), br(), br()),
+                                           tabPanel('Fish Tissue Data', br(), br(), br(), h4('Placeholder'),br(), br(), br()),
+                                           tabPanel('Toxics Data', br(), br(), br(), h4('Placeholder'),br(), br(), br())
+                                         )
+                                         
                                            
                                          )))
                     )))
-)
+
 
 #verbatimTextOutput("table"),

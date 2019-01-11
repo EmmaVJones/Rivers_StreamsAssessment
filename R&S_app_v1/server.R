@@ -2,14 +2,14 @@
 source('global.R')
 source('AUshapefileLocation.R')
 
-assessmentLayer <- st_read('GIS/AssessmentRegions_VA84_basins.shp') %>%
-  st_transform( st_crs(4326)) 
-stationTable <- read_csv('data/BRRO_Sites_AU_WQS.csv')
+#assessmentLayer <- st_read('GIS/AssessmentRegions_VA84_basins.shp') %>%
+#  st_transform( st_crs(4326)) 
+#stationTable <- read_csv('data/BRRO_Sites_AU_WQS.csv')
 #stationTable <- readRDS('data/BRROsites_ROA_sf.RDS')
-conventionals <- suppressWarnings(read_csv('data/CONVENTIONALS_20171010.csv'))
-conventionals$FDT_DATE_TIME2 <- as.POSIXct(conventionals$FDT_DATE_TIME, format="%m/%d/%Y %H:%M")
-#commentList <- readRDS('Comments/commentList.RDS')
-monStationTemplate <- read_excel('data/tbl_ir_mon_stations_template.xlsx') # from X:\2018_Assessment\StationsDatabase\VRO
+#conventionals <- suppressWarnings(read_csv('data/CONVENTIONALS_20171010.csv'))
+#conventionals$FDT_DATE_TIME2 <- as.POSIXct(conventionals$FDT_DATE_TIME, format="%m/%d/%Y %H:%M")
+##commentList <- readRDS('Comments/commentList.RDS')
+#monStationTemplate <- read_excel('data/tbl_ir_mon_stations_template.xlsx') # from X:\2018_Assessment\StationsDatabase\VRO
 
 mapviewOptions(basemaps = c( "OpenStreetMap",'Esri.WorldImagery'),
                vector.palette = colorRampPalette(brewer.pal(8, "Set1")),
@@ -168,15 +168,12 @@ shinyServer(function(input, output, session) {
     DT::datatable(z, options= list(pageLength = nrow(z), scrollY = "250px", dom='t'))  })
   
   ## Station Table View Section
-  observe(siteData$Temp <- exceedance_temp(stationData()) %>% dplyr::select(nSamples,nExceedance,exceedanceRate))
-  observe(siteData$pH <- exceedance_pH(stationData()) %>% dplyr::select(nSamples,nExceedance,exceedanceRate))
-  observe(siteData$DO <- exceedance_DO(stationData()) %>% dplyr::select(nSamples,nExceedance,exceedanceRate))
+  observe(siteData$StationTableResults <- cbind(tempExceedances(stationData()), DOExceedances_Min(stationData()), pHExceedances(stationData())))
   
   output$stationTableDataSummary <- DT::renderDataTable({
     req(stationData())
-    z <- data.frame(StationID = unique(stationData()$FDT_STA_ID)) 
-    z <- cbind(z, siteData$Temp)
-    datatable(monStationTemplate, extensions = 'Buttons', escape=F, rownames = F,
+    z <- cbind(data.frame(StationID = unique(stationData()$FDT_STA_ID)), siteData$StationTableResults) 
+    datatable(z, extensions = 'Buttons', escape=F, rownames = F, editable = TRUE,
               options= list(scrollX = TRUE, pageLength = nrow(z),
                             dom='Bt', buttons=list('copy',
                                                     list(extend='csv',filename=paste('AssessmentResults_',paste(assessmentCycle,input$stationSelection, collapse = "_"),Sys.Date(),sep='')),
@@ -188,7 +185,7 @@ shinyServer(function(input, output, session) {
   
   # Display Data 
   output$AURawData <- DT::renderDataTable({ AUData()
-    DT::datatable(AUData(), extensions = 'Buttons', escape=F, rownames = F, editable = TRUE,
+    DT::datatable(AUData(), extensions = 'Buttons', escape=F, rownames = F, 
                   options= list(scrollX = TRUE, pageLength = nrow(AUData()), scrollY = "300px", 
                                 dom='Btf', buttons=list('copy',
                                                         list(extend='csv',filename=paste('AUData_',paste(input$stationSelection, collapse = "_"),Sys.Date(),sep='')),
@@ -217,6 +214,9 @@ shinyServer(function(input, output, session) {
   ## DO Sub Tab ##------------------------------------------------------------------------------------------------------
   callModule(DOPlotlySingleStation,'DO', AUData)
   callModule(DOExceedanceAnalysis,'DO_ExceedanceAnalysis', AUData)
+  
+  ## Specific Conductance Sub Tab ##------------------------------------------------------------------------------------------------------
+  callModule(SpCondPlotlySingleStation,'SpCond', AUData)
 })
 
 

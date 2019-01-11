@@ -42,7 +42,6 @@ tempExceedances <- function(x){
     
   quickStats(temp, 'TEMP')
 }
-
 #tempExceedances(x)
 
 pHExceedances <- function(x){
@@ -54,5 +53,15 @@ pHExceedances <- function(x){
     
   quickStats(pH, 'PH')
 }
-
 #pHExceedances(x)
+
+
+DOExceedances_Min <- function(x){
+  DO <- dplyr::select(x,FDT_DATE_TIME2,DO,`Dissolved Oxygen Min (mg/L)`)%>% # Just get relevant columns, 
+    filter(!is.na(DO)) %>% 
+    rename(parameter = !!names(.[2]), limit = !!names(.[3])) %>% # rename columns to make functions easier to apply
+    mutate(exceeds = ifelse(parameter < limit, T, F)) # Identify where below min DO 
+   
+  quickStats(DO, 'DO')
+}
+#DOExceedances_Min(x)

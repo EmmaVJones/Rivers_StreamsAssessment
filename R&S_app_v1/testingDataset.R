@@ -12,6 +12,8 @@ library(DT)
 library(readxl)
 library(RColorBrewer)
 #library(FSA)
+library(lubridate)
+library(magrittr)
 
 WQSvalues <- tibble(CLASS = c('I',"II","II","III","IV","V","VI","VII"),
                     `Description Of Waters` = c('Open Ocean', 'Tidal Waters in the Chowan Basin and the Atlantic Ocean Basin',
