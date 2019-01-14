@@ -218,3 +218,103 @@ z <- VDH %>% split(.$ID) %>%
 totTime <- Sys.time()- startTime
 print(paste('It takes', format(totTime, digits=3), 'seconds to analyze 26 stations and make assessment decisions with new bacteria criteria'))
 
+
+
+rm(list=setdiff(ls(), c('bacteriaExceedances_NewStd', 'bacteriaAssessmentDecision',"nonOverlappingIntervals")))
+####### ------------------------------------------------------------------------------------------------------
+# Now working with Tish's simulated data
+
+# Example 1: Assessment = FULLY SUPPORTING
+# Two Independent 90-Day Periods, no GM exceedences and no 2+ hits in any 90 day period
+
+simData1 <- read_excel('exampleData/simulated_Ecoli_bacteria.xlsx', sheet='Example 1 DATA') %>%
+  mutate(`Date Time` = DateTime) %>% select(-DateTime)
+
+# this result will highlight all potential windows with issues to assessor
+simData1.2 <- bacteriaAssessmentDecision(simData1, sampleRequirement = 10, STV = 410, geomeanCriteria = 126) 
+
+# this result will highlight any non overlapping windows with issues to assessor
+simData1.3 <- nonOverlappingIntervals(simData1.2)
+
+# Example 1: Emma gets same as Tish
+#--------------------------------------
+# Example 2: Assessment = Insufficient Information
+#All the 90-day periods w/10+ samples are overlapping and there are no 90-day periods with 2+ STV hits
+
+simData2 <- read_excel('exampleData/simulated_Ecoli_bacteria.xlsx', sheet='Example 2 DATA') %>%
+  mutate(`Date Time` = DateTime) %>% select(-DateTime)
+
+# this result will highlight all potential windows with issues to assessor
+simData2.2 <- bacteriaAssessmentDecision(simData2, sampleRequirement = 10, STV = 410, geomeanCriteria = 126) 
+
+# this result will highlight any non overlapping windows with issues to assessor
+simData2.3 <- nonOverlappingIntervals(simData2.2)
+
+# Example 2: Emma FS, doesnt match tish. Emma needs rule about 2 nonoverlapping windows to get same answer
+#--------------------------------------
+# Example 3: Assessment = Assessment = Insufficient Information
+#The two independent 90-day periods with 10+ samples don't  both fall within a recreation season and there are no GM exceedences or 2+ STV hits
+
+simData3 <- read_excel('exampleData/simulated_Ecoli_bacteria.xlsx', sheet='Example 3 DATA') %>%
+  mutate(`Date Time` = DateTime) %>% select(-DateTime)
+
+# this result will highlight all potential windows with issues to assessor
+simData3.2 <- bacteriaAssessmentDecision(simData3, sampleRequirement = 10, STV = 410, geomeanCriteria = 126) 
+
+# this result will highlight any non overlapping windows with issues to assessor
+simData3.3 <- nonOverlappingIntervals(simData3.2)
+
+# Example 3: Emma FS, doesnt match tish. Emma needs to firm up rule about recreation season bc the second record says
+# it is T for recSeason but is really false
+
+#--------------------------------------
+# Example 4: Assessment = Assessment=Impaired
+#At least one 90-day period in the dataset has 2+ STV hits.  
+
+simData4 <- read_excel('exampleData/simulated_Ecoli_bacteria.xlsx', sheet='Example 4 DATA') %>%
+  mutate(`Date Time` = DateTime) %>% select(-DateTime)
+
+# this result will highlight all potential windows with issues to assessor
+simData4.2 <- bacteriaAssessmentDecision(simData4, sampleRequirement = 10, STV = 410, geomeanCriteria = 126) 
+
+# this result will highlight any non overlapping windows with issues to assessor
+simData4.3 <- nonOverlappingIntervals(simData4.2)
+
+# Example 4: Emma Impaired. Matches Tish's but need to dig in more to see why only one row returned in simData4.2
+# will need additional rules on nonoverlapping windows, sample season, and years.
+#--------------------------------------
+# Example 5: Assessment=Fully Supporting
+#The two most recent years have no 90-day period with 2+ STV hits (>410) and there are no GM exceedences (>126) 
+#in two independent recreational season 90-day periods
+
+#There is a 90-day period with 2+ STV hits, but it is not in the two most recent years.
+
+
+simData5 <- read_excel('exampleData/additional_simulated_Ecoli_bacteria.xlsx', sheet='Example 5') %>%
+  mutate(`Date Time` = DateTime) %>% select(-DateTime)
+
+# this result will highlight all potential windows with issues to assessor
+simData5.2 <- bacteriaAssessmentDecision(simData5, sampleRequirement = 10, STV = 410, geomeanCriteria = 126) 
+
+# this result will highlight any non overlapping windows with issues to assessor
+simData5.3 <- nonOverlappingIntervals(simData5.2)
+
+# Example 5: Emma FS,matches but needs more work on time rules
+#--------------------------------------
+# Example 6: Assessment=Impaired
+#There is a 90-day period in the two most recent years that has 2+ STV hits (>410). But there are no GM exceedences
+#in two independent recreational season 90-day periods
+
+
+simData6 <- read_excel('exampleData/additional_simulated_Ecoli_bacteria.xlsx', sheet='Example 6') %>%
+  mutate(`Date Time` = DateTime) %>% select(-DateTime)
+
+# this result will highlight all potential windows with issues to assessor
+simData6.2 <- bacteriaAssessmentDecision(simData6, sampleRequirement = 10, STV = 410, geomeanCriteria = 126) 
+
+# this result will highlight any non overlapping windows with issues to assessor
+simData6.3 <- nonOverlappingIntervals(simData4.2)
+
+# Example 6: Emma FS, doesnt match. need more work
+
+
