@@ -104,10 +104,9 @@ bacteriaExceedances_NewStd <- function(x, # input dataframe with bacteria data
 
 nonOverlappingIntervals <- function(results, onlyWithinRec, last2years){
   if(onlyWithinRec == T){ results <- filter(results, `Window Within Recreation Season` == onlyWithinRec) }
-  #if(!any(is.na(last2years))){ 
-  results <- mutate(results, yr= year(`Date Window Starts`)) %>%
-    filter(yr %in% last2years) %>% select(-yr)
-  #if(any(is.na(last2years))){ finalResults <- results}
+  if(!is.na(last2years)){ results <- mutate(results, yr= year(`Date Window Starts`)) %>%
+    filter(yr > last2years) %>% select(-yr)}
+  
   
   if(nrow(results) > 0){
     results$newInt <- NA
@@ -120,8 +119,8 @@ nonOverlappingIntervals <- function(results, onlyWithinRec, last2years){
         results$newInt[i] <- as.character(x)}  }
     
     uniqueInt <- unique(results$newInt)
-    finalResults <- suppressWarnings(filter(results, `Date Window Ends` %in% as.Date(unique(results$newInt))) %>%
-      select(-newInt))
+    finalResults <- filter(results, `Date Window Ends` %in% as.Date(unique(results$newInt))) %>%
+      select(-newInt)
   } else {
     finalResults <- results
   }
@@ -131,48 +130,20 @@ nonOverlappingIntervals <- function(results, onlyWithinRec, last2years){
 }
 
 
-#Function to see if any 90 day windows have 2+ STV exceedances
-STVexceedance_noWindowSize <- function(df){
-  morethan1STVexceedanceInAnyWindow <- filter(df, `STV Exceedances In Window` >= 2)
-  if(nrow(morethan1STVexceedanceInAnyWindow) > 0){
-    return('| Data outside last two years Observed Effect: 2 or more STV exceedances in a 90 day window |')
-  }
-}
-
-# function to test geomean exceedances
-geomeanExceedance <- function(df){
-  geomeanExceedances <- filter(df, `Geomean In Window` > geomeanCriteria)
-  if(nrow(geomeanExceedances) > 0){
-    return('| Data outside last two years Observed Effect: geometric means calculated for the 90-day periods represented by 10+ samples do not meet the GM criterion |')
-  }
-}
-
 
 # Function to summarize results into decisions
 # This function returns all potential issues with priorty on geomean results IF there
 # are enough samples to run geomean
 # NO filtering of recreation season, so in theory this could run the citizen data, too.
 # Recreation season is noted as boolean with April 1 - October 31 compliance
-bacteriaAssessmentDecision <- function(x, sampleRequirement, STV, geomeanCriteria){
+bacteriaAssessmentDecision <- function(x, sampleRequirement, STV, geomeanCriteria, last2years){
   # Run assessment function
   z <- bacteriaExceedances_NewStd(x,  sampleRequirement, STV, geomeanCriteria)   
-  
-  # what are the last two years sampled? They get a bit of priority
-  last2years <- sort(unique(year(z$`Date Window Starts`)), TRUE)[1:2]
-  
-  # Deal with data not in last two years separately
-  dataNotInLast2years <- filter(z, !(year(z$`Date Window Starts`) %in% last2years))
-  if(nrow(dataNotInLast2years) > 0){
-    OE <- paste( STVexceedance_noWindowSize(dataNotInLast2years), geomeanExceedance(dataNotInLast2years))  }
-  
-  
-  z <- filter(z, year(z$`Date Window Starts`) %in% last2years)
-  
   
   # Then make sure at least 2 independent 90 day windows present in dataset before testing for other things
   nonOverlappingExceedanceResults <- nonOverlappingIntervals(z, FALSE, last2years)
   if(nrow(nonOverlappingExceedanceResults) < 2){
-    return(mutate(z,`Assessment Decision` = paste('Dataset lacks two independent 90 day windows: Insufficient Information (Prioritize for follow-up Monitoring) ', OE)))
+    return(mutate(z,`Assessment Decision` = 'Dataset lacks two independent 90 day windows: Insufficient Information (Prioritize for follow-up Monitoring) '))
   } else {
     # See if geomean method applies
     geomeanApplies <- filter(z, `Samples in 90 Day Window` >= sampleRequirement)
@@ -181,7 +152,7 @@ bacteriaAssessmentDecision <- function(x, sampleRequirement, STV, geomeanCriteri
       geomeanExceedances <- filter(geomeanApplies, `Geomean In Window` > geomeanCriteria)
       
       # If any geomean exceedances then return all windows where geomean exceeds
-      if(nrow(geomeanExceedances) > 0){#} & any(year(geomeanExceedances$`Date Window Starts`) %in% last2years)){
+      if(nrow(geomeanExceedances) > 0){
         return(mutate(geomeanExceedances,`Assessment Decision` = 
                         'Impaired: geometric means calculated for the 90-day periods represented by 10+ samples do not meet the GM criterion'))
       } else{ # If no geomean exceedances then dig into STV exceedances
@@ -201,18 +172,16 @@ bacteriaAssessmentDecision <- function(x, sampleRequirement, STV, geomeanCriteri
           # If 2+ STV exceedances in any size window
           morethan1STVexceedanceInAnyWindow <- filter(STVexceedanceAfterPassingGeomean, `STV Exceedances In Window` >= 2)
           if(nrow(morethan1STVexceedanceInAnyWindow) > 0){
-            
-            
             return(mutate(morethan1STVexceedanceInAnyWindow, `Assessment Decision` = paste('Impaired: 2 or more STV exceedances in a 90 day window')))  
           } else {
             # Only other option is only 1 STV exceedance in any size window
             nonOverlappingIntervalsPassingGeomeanButHave1STV <- nonOverlappingIntervals(geomeanApplies, TRUE, last2years) # EVJ edit to test passing geomean windows for independence
             if(nrow(nonOverlappingIntervalsPassingGeomeanButHave1STV) >=2){
               return(mutate(nonOverlappingIntervalsPassingGeomeanButHave1STV, 
-                            `Assessment Decision` = paste('Fully Supporting: no geomean exceedances in 2+ non overlapping 90 day windows within the Recreation Season; Observed effect: window(s) present with < 10 samples and 1 STV Exceedance',OE)))  
+                            `Assessment Decision` = 'Fully Supporting: no geomean exceedances in 2+ non overlapping 90 day windows within the Recreation Season; Observed effect: window(s) present with < 10 samples and 1 STV Exceedance'))  
             } else {
               return(mutate(z, `Assessment Decision` = 
-                              paste('Insufficient Information: meets geomean criteria but lacks at least two independent 90 day windows; Observed Effect: 1 STV exceedance in 90 day window with <= 10 samples (Prioritize for follow up monitoring)', OE))) }
+                              paste('Insufficient Information: meets geomean criteria but lacks at least two independent 90 day windows; Observed Effect: 1 STV exceedance in 90 day window with <= 10 samples (Prioritize for follow up monitoring)'))) }
           }
         } else { 
           # If no geomean exceedances and no STV exceedances in 90 day window 
@@ -225,7 +194,7 @@ bacteriaAssessmentDecision <- function(x, sampleRequirement, STV, geomeanCriteri
             STVexceedanceInDataset <- filter(z, `STV Exceedances In Window` > 0)
             if(nrow(STVexceedanceInDataset) > 0){
               return(mutate(nonOverlappingIntervalsPassingGeomean, 
-                            `Assessment Decision` = paste('Fully Supporting: no geomean exceedances in 2+ non overlapping 90 day windows within the Recreation Season; Observed Effect: window(s) present with 1 STV Exceedance', OE)))
+                            `Assessment Decision` = 'Fully Supporting: no geomean exceedances in 2+ non overlapping 90 day windows within the Recreation Season; Observed Effect: window(s) present with 1 STV Exceedance'))
             } else {
               return(mutate(nonOverlappingIntervalsPassingGeomean, 
                             `Assessment Decision` = 'Fully Supporting: no geomean exceedances in 2+ non overlapping 90 day windows within the Recreation Season'))    }
@@ -233,10 +202,9 @@ bacteriaAssessmentDecision <- function(x, sampleRequirement, STV, geomeanCriteri
             # Test for any observed effects before spitting out answer
             STVexceedanceInDataset <- filter(z, `STV Exceedances In Window` > 0)
             if(nrow(STVexceedanceInDataset) > 0){
-              return(mutate(z, `Assessment Decision` = paste('Insufficient Information: no geomean exceedances but STV exceedances noted. Dataset lacks 2+ non overlapping 90 day windows within Recreation Season',
-                                                             OE)))    
-              } else {
-                return(mutate(z, `Assessment Decision` = paste('Insufficient Information: no geomean or STV exceedances but dataset lacks 2+ non overlapping 90 day windows within Recreation Season', OE) ))    }
+              return(mutate(z, `Assessment Decision` = 'Insufficient Information: no geomean exceedances but STV exceedances noted. Dataset lacks 2+ non overlapping 90 day windows within Recreation Season' ))    
+            } else {
+              return(mutate(z, `Assessment Decision` = 'Insufficient Information: no geomean or STV exceedances but dataset lacks 2+ non overlapping 90 day windows within Recreation Season' ))    }
           }
         }
       }
@@ -244,8 +212,8 @@ bacteriaAssessmentDecision <- function(x, sampleRequirement, STV, geomeanCriteri
       exceedsSTVrate <- filter(z, `STV Exceedance Rate` >= 10.5)
       # First deal with no STV exceedance rate issues AND not enough data to assess geomean
       if(nrow(exceedsSTVrate) == 0 ){
-        return(mutate(z,`Assessment Decision` = paste(
-                        'Insufficient Information: no 90 day windows with > 10.5% exceedance of STV but not enough samples in any 90 day window to assess geomean (Prioritize for follow up monitoring)', OE)))   
+        return(mutate(z,`Assessment Decision` = 
+                        'Insufficient Information: no 90 day windows with > 10.5% exceedance of STV but not enough samples in any 90 day window to assess geomean (Prioritize for follow up monitoring)'))   
       } else { # These have STV exceedance rate issues AND not enough data to assess geomean
         moreThan2STVhitsInWindow <- filter(exceedsSTVrate, `STV Exceedances In Window` >= 2)
         if(nrow(moreThan2STVhitsInWindow) >= 1){
@@ -253,12 +221,12 @@ bacteriaAssessmentDecision <- function(x, sampleRequirement, STV, geomeanCriteri
           return(mutate(moreThan2STVhitsInWindow,`Assessment Decision` = 
                           paste('Impaired: ',nrow(moreThan2STVhitsInWindow), '90 day window(s) with 2+ exceedances of STV but not enough samples in any 90 day window to assess geomean')))   
         } else {
-            # These have 1 hit in any 90 day window but < 10 samples in said window(s) i.e. not enough info for geomean assessment
-          return(mutate(z,`Assessment Decision` = paste(
-                          'Insufficient Information: no 90 day windows with > 10.5% exceedance of STV but not enough samples in any 90 day window to assess geomean (Prioritize for follow up monitoring)',OE)))  
-          }
+          # These have 1 hit in any 90 day window but < 10 samples in said window(s) i.e. not enough info for geomean assessment
+          return(mutate(z,`Assessment Decision` = 
+                          'Insufficient Information: no 90 day windows with > 10.5% exceedance of STV but not enough samples in any 90 day window to assess geomean (Prioritize for follow up monitoring)'))  
         }
-       
+      }
+      
     }
   }
 }
@@ -477,32 +445,26 @@ tish2$`Date Time` <- as.Date(tish2$`Date Time`)
 
 
 z <- tish2 %>% split(.$ID) %>%
-  map_df( . , bacteriaAssessmentDecision, sampleRequirement = 10, STV = 410, geomeanCriteria = 126)
+  map_df( . , bacteriaAssessmentDecision, sampleRequirement = 10, STV = 410, geomeanCriteria = 126, last2years = 2016)
 View(z %>% distinct(`StationID`, .keep_all = T) %>% select(StationID, `Assessment Decision`, `STV Assessment`,`Geomean Assessment`))
 
 #"2-FAUXCREEK"
 results <- bacteriaAssessmentDecision( filter(tish2, ID == "2-FAUXCREEK"),
-                                       sampleRequirement = 10, STV = 410, geomeanCriteria = 126) 
+                                       sampleRequirement = 10, STV = 410, geomeanCriteria = 126, last2years = 2016) 
 unique(results$`Assessment Decision`)
 
 #"3-PHONYRUN"
 results <- bacteriaAssessmentDecision( filter(tish2, ID == "3-PHONYRUN"),
-                                       sampleRequirement = 10, STV = 410, geomeanCriteria = 126) 
+                                       sampleRequirement = 10, STV = 410, geomeanCriteria = 126, last2years = 2016) 
 unique(results$`Assessment Decision`)
 
 #"2-IMPOSTERLAKE" 
 results <- bacteriaAssessmentDecision( filter(tish2, ID == "2-IMPOSTERLAKE" ),
-                                       sampleRequirement = 10, STV = 410, geomeanCriteria = 126) 
-unique(results$`Assessment Decision`)
-
-
-
-
-
-
-
-#"5-FAKE" 
-results <- bacteriaAssessmentDecision( filter(emma, ID == "5-FAKE" ),
                                        sampleRequirement = 10, STV = 410, geomeanCriteria = 126, last2years = 2016) 
 unique(results$`Assessment Decision`)
+
+
+
+
+
 
