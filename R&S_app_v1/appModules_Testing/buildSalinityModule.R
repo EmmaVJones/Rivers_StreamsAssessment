@@ -41,13 +41,13 @@ salinityPlotlySingleStation <- function(input,output,session, AUdata, stationSel
     dat <- salinity_oneStation()
     dat$SampleDate <- as.POSIXct(dat$FDT_DATE_TIME2, format="%m/%d/%y")
     plot_ly(data=dat)%>%
-      add_markers(x= ~SampleDate, y= ~FDT_SALINITY,mode = 'scatter', name="Salinity (uS/cm)",
+      add_markers(x= ~SampleDate, y= ~FDT_SALINITY,mode = 'scatter', name="Salinity (ppt)",
                   hoverinfo="text",text=~paste(sep="<br>",
                                                paste("Date: ",SampleDate),
                                                paste("Depth: ",FDT_DEPTH, "m"),
-                                               paste("Salinity: ",FDT_SALINITY,"uS/cm")))%>%
+                                               paste("Salinity: ",FDT_SALINITY,"ppt")))%>%
       layout(showlegend=FALSE,
-             yaxis=list(title="Salinity (uS/cm)"),
+             yaxis=list(title="Salinity (ppt)"),
              xaxis=list(title="Sample Date",tickfont = list(size = 10))) })
 }
 

@@ -16,7 +16,7 @@ library(magrittr)
 # Bring in modules
 source('appModules/multipleDependentSelectizeArguments.R')
 
-modulesToReadIn <- c('temperature','pH','DO','SpCond','Salinity','TN','Ecoli')
+modulesToReadIn <- c('temperature','pH','DO','SpCond','Salinity','TN','Ecoli','chlA')
 for (i in 1:length(modulesToReadIn)){
   source(paste('appModules/',modulesToReadIn[i],'Module.R',sep=''))
 }
