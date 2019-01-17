@@ -208,6 +208,15 @@ bacteria_Assessment_OLD <- function(x){
   return( rbind(geomeanResults, SSMresults) )
 }
 
+conventionalsToBacteria <- function(x, bacteriaType){
+  z <- dplyr::select(x, FDT_STA_ID, FDT_DATE_TIME2, bacteriaType) %>%
+    rename(ID = FDT_STA_ID, `Date Time` = FDT_DATE_TIME2, Value = bacteriaType) %>%
+    filter(!is.na(Value))
+  z$`Date Time` <- as.Date(z$`Date Time`)
+  z$Value <- as.numeric(z$Value)
+  return(z)
+}
+
 
 
 

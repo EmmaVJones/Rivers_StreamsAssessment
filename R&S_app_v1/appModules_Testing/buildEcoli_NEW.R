@@ -119,31 +119,30 @@ EcoliPlotlySingleStationUI <- function(id){
       br(),hr(),br(),
       fluidRow(
         column(6, h5('All E. coli records that are above the criteria for the ',span(strong('selected site')),' are highlighted below.'),
-               #div(style = 'height:250px;overflow-y: scroll', 
-                   h6('Old Standard (STV= 235 CFU / 100 mL, geomean = 126 CFU / 100 mL)'),
+               h6(strong('Old Standard (STV= 235 CFU / 100 mL, geomean = 126 CFU / 100 mL)')),
                    DT::dataTableOutput(ns('EcoliexceedancesOldStdTableSingleSitegeomean')),
                    DT::dataTableOutput(ns('EcoliexceedancesOldStdTableSingleSiteSTV')), br(), br(), hr(), br(), br(), 
-               #div(style = 'height:250px;overflow-y: scroll', 
-                   h6('New Standard (STV= 410 CFU / 100 mL, geomean = 126 CFU / 100 mL with additional sampling requirements)'),
+               h6(strong('New Standard (STV= 410 CFU / 100 mL, geomean = 126 CFU / 100 mL with additional sampling requirements)')),
                DT::dataTableOutput(ns('EcoliexceedancesNEWStdTableSingleSite'))),
         column(6, h5('Individual E. coli exceedance statistics for the ',span(strong('selected site')),' are highlighted below.'),
-               #div(style = 'height:250px;overflow-y: scroll',
-                   h6(strong('Old Standard (STV= 235 CFU / 100 mL, geomean = 126 CFU / 100 mL)')), 
-                   DT::dataTableOutput(ns("EcoliOldStdTableSingleSite")), br(), br(), hr(), br(), br(),
-               #div(style = 'height:250px;overflow-y: scroll', 
-                   h6(strong('New Standard (STV= 410 CFU / 100 mL, geomean = 126 CFU / 100 mL with additional sampling requirements)')), 
-                   DT::dataTableOutput(ns("EcoliNEWStdTableSingleSite")),
-               h4('See below section for detailed analysis with new recreation standard.'))),
+               h6(strong('Old Standard (STV= 235 CFU / 100 mL, geomean = 126 CFU / 100 mL)')), 
+               DT::dataTableOutput(ns("EcoliOldStdTableSingleSite")), br(), br(), br(), br(), br(), br(), br(), br(), br(), br(), br(), br(), br(), br(), br(), hr(), br(), br(),
+               h6(strong('New Standard (STV= 410 CFU / 100 mL, geomean = 126 CFU / 100 mL with additional sampling requirements)')), 
+               DT::dataTableOutput(ns("EcoliNEWStdTableSingleSite")),
+               h4(strong('See below section for detailed analysis with new recreation standard.')))),
       hr(),br(),
       h4(strong('New Recreation Standard Analysis')),
       helpText('Review the 90 day windows (identified by each sample date) for STV and geomean exceedances.
-             Comments are specific to each row of data. To view the dataset within each 90 day window, use
-             the drop down box to select the start of the window in question.'),
+               Comments are specific to each row of data. To view the dataset within each 90 day window, use
+               the drop down box to select the start of the window in question.'),
       fluidRow(
-        column(6, #div(style = 'height:300px;overflow-y: scroll',
-                      DT::dataTableOutput(ns('analysisTable'))),
+        column(6, helpText('Below is the raw data associated with the ',span('selected site'),'.'), 
+               DT::dataTableOutput(ns('rawData'))),
         column(6, uiOutput(ns('windowChoice')),
-               plotlyOutput(ns('EcoliplotlyZoom')))))
+               plotlyOutput(ns('EcoliplotlyZoom')))),
+      br(), br(),
+      DT::dataTableOutput(ns('analysisTable')))
+               
     
   )
 }
@@ -240,16 +239,11 @@ EcoliPlotlySingleStation <- function(input,output,session, AUdata, stationSelect
     DT::datatable(z, rownames = FALSE, options= list(scrollX = TRUE, pageLength = nrow(z), scrollY = "250px", dom='t')) 
   })
   
-  output$analysisTable <- DT::renderDataTable({
-    req(Ecoli_oneStation(),newSTDbacteriaData())
-    z <- bacteriaAssessmentDecision(newSTDbacteriaData(), 10, 410, 126) %>%
-      dplyr::select(-associatedData) # remove embedded tibble to make table work
-    DT::datatable(z, rownames = FALSE, options= list(scrollX = TRUE, pageLength = nrow(z), scrollY = "400px", dom='t'))
-    })
   
   output$windowChoice <- renderUI({
     req(Ecoli_oneStation(),newSTDbacteriaData())
-    selectInput(ns('windowChoice_'),'Select 90 day window start date', choices = unique(newSTDbacteriaData()$`Date Time`))})
+    selectInput(ns('windowChoice_'),'Select 90 day window start date',
+                choices = unique(newSTDbacteriaData()$`Date Time`), width = '40%')})
   
   output$EcoliplotlyZoom <- renderPlotly({
     req(input$windowChoice_, Ecoli_oneStation(),newSTDbacteriaData())
@@ -280,11 +274,22 @@ EcoliPlotlySingleStation <- function(input,output,session, AUdata, stationSelect
              xaxis=list(title="Sample Date",tickfont = list(size = 10))) 
   })
  
+  output$rawData <- DT::renderDataTable({
+    req(input$windowChoice_, Ecoli_oneStation(),newSTDbacteriaData())
+    z <- dplyr::select(Ecoli_oneStation(), FDT_STA_ID, FDT_DATE_TIME, E.COLI ,RMK_ECOLI)
+    DT::datatable(z, options= list(scrollX = TRUE, pageLength = nrow(z), scrollY = "400px", dom='t'))
+  })
+  
+  output$analysisTable <- DT::renderDataTable({
+    req(Ecoli_oneStation(),newSTDbacteriaData())
+    z <- bacteriaAssessmentDecision(newSTDbacteriaData(), 10, 410, 126) %>%
+      dplyr::select(-associatedData) # remove embedded tibble to make table work
+    DT::datatable(z, rownames = FALSE, options= list(scrollX = TRUE, pageLength = nrow(z), scrollY = "400px", dom='t'))
+  })
   
 }
 
 
-shinyApp(ui,server)
 
 
 ui <- fluidPage(
@@ -306,3 +311,5 @@ server <- function(input,output,session){
   callModule(EcoliPlotlySingleStation,'Ecoli', AUData, stationSelected)#input$stationSelection)
   
 }
+
+shinyApp(ui,server)
