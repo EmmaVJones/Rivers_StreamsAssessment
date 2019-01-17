@@ -7,227 +7,302 @@ AUData <- filter(conventionals_HUC, ID305B_1 %in% 'VAW-H01R_JMS04A00' |
                    ID305B_2 %in% 'VAW-H01R_JMS04A00')%>% 
   left_join(WQSvalues, by = 'CLASS')
 
-x <-filter(AUData, FDT_STA_ID %in% '2-JMS279.41') 
+x <-filter(AUData, FDT_STA_ID %in% '2-JMS282.28') 
 #------------------------------------------------------------------------------------------
+#parameterDataset <- bacteriaGeomean
+#parameter <- 'ECOLI'
+
+quickStats <- function(parameterDataset, parameter){
+  results <- data.frame(SAMP = nrow(parameterDataset),
+                        VIO = nrow(filter(parameterDataset, exceeds == TRUE))) %>%
+    mutate(exceedanceRate = (VIO/SAMP)*100)
+  
+  if(results$exceedanceRate > 10.5 & results$SAMP > 10){outcome <- 'Review'}
+  if(results$exceedanceRate < 10.5 & results$SAMP > 10){outcome <- 'S'}
+  if(results$VIO >= 2 & results$SAMP < 10){outcome <- 'Review'}
+  if(results$VIO < 2 & results$SAMP < 10){outcome <- 'Review'}
+  
+  results <- mutate(results, STAT = outcome)
+  names(results) <- c(paste(parameter,names(results)[1], sep = '_'),
+                      paste(parameter,names(results)[2], sep = '_'),
+                      paste(parameter,names(results)[3], sep = '_'),
+                      paste(parameter,names(results)[4], sep = '_'))
+  #rename based on parameter entered
+  return(results)
+}
+
+#bacteria geomean testing
+#bacteria1 <- bacteria
+#bacteria1[1,] <- c('2011-02-02 12:30:00',25)
+#bacteria1[2,] <- c('2011-02-04 12:30:00',432)
+#bacteria1[3,] <- c('2011-02-05 12:30:00',555)
+#bacteria1[4,] <- c('2011-02-06 12:30:00',18)
+#bacteria1[5,] <- c('2011-02-018 12:30:00',333)
+#bacteria1[30,] <- c('2013-06-01 15:25:00',25)
+#bacteria1[31,] <- c('2013-06-04 15:25:00',444)
+#bacteria1[32,] <- c('2013-06-10 15:25:00',555)
+#bacteria1[33,] <- c('2013-06-18 15:25:00',666)
+#bacteria1[34,] <- c('2013-06-22 15:25:00',777)
+#bacteria1[35,] <- c('2013-06-29 15:25:00',98)
+
+bacteria_ExceedancesGeomeanOLD <- function(x){
+  suppressWarnings(mutate(x, SampleDate = format(FDT_DATE_TIME2,"%m/%d/%y"), # Separate sampling events by day
+         previousSample=lag(SampleDate,1),previousSampleECOLI=lag(E.COLI,1)) %>% # Line up previous sample with current sample line
+    rowwise() %>% 
+    mutate(sameSampleMonth= as.numeric(strsplit(SampleDate,'/')[[1]][1])  -  as.numeric(strsplit(previousSample,'/')[[1]][1])) %>% # See if sample months are the same, e.g. more than one sample per calendar month
+    filter(sameSampleMonth == 0 | is.na(sameSampleMonth)) %>% # keep only rows with multiple samples per calendar month  or no previous sample (NA) to then test for geomean
+    # USING CALENDAR MONTH BC THAT'S HOW WRITTEN IN GUIDANCE, rolling 4 wk windows would have been more appropriate
+    mutate(sampleMonthYear = paste(month(as.Date(SampleDate,"%m/%d/%y")),year(as.Date(SampleDate,"%m/%d/%y")),sep='/')) %>% # grab sample month and year to group_by() for next analysis
+    group_by(sampleMonthYear) %>%
+    mutate(geoMeanCalendarMonth = FSA::geomean(as.numeric(E.COLI)), # Calculate geomean
+           limit = 126, samplesPerMonth = n()))
+}
+ 
+bacteria_ExceedancesSTV_OLD <- function(x){                                    
+  x %>% rename(parameter = !!names(.[2])) %>% # rename columns to make functions easier to apply
+    mutate(limit = 235, exceeds = ifelse(parameter > limit, T, F)) # Single Sample Maximum 
+}
 
 
-#https://cran.rstudio.com/web/packages/tibbletime/vignettes/TT-03-rollify-for-rolling-analysis.html
-library(tibbletime)
+# How bacteria is assessed
+bacteria_Assessment_OLD <- function(x){
+  bacteria <- dplyr::select(x,FDT_DATE_TIME2,E.COLI)%>% # Just get relavent columns, 
+    filter(!is.na(E.COLI)) #get rid of NA's
+  # Geomean Analysis (if enough n)
+  bacteriaGeomean <- bacteria_ExceedancesGeomeanOLD(bacteria) %>%     
+    distinct(sampleMonthYear, .keep_all = T) %>%
+    filter(samplesPerMonth > 4, geoMeanCalendarMonth > limit) %>% # minimum sampling rule for geomean to apply
+    mutate(exceeds = TRUE) %>%
+    select(sampleMonthYear, geoMeanCalendarMonth, limit, exceeds, samplesPerMonth)
+  geomeanResults <- quickStats(bacteriaGeomean, 'ECOLI') %>% mutate(ECOLI_STAT = recode(ECOLI_STAT, 'Review' = 'Review if ECOLI_VIO > 1' ),
+                                                                    `Assessment Method` = 'Old Monthly Geomean')
+  
+  # Single Sample Maximum Analysis
+  bacteriaSSM <- bacteria_ExceedancesSTV_OLD(bacteria) 
+  SSMresults <- quickStats(bacteriaSSM, 'ECOLI') %>% mutate(`Assessment Method` = 'Old Single Sample Maximum')
+  return( rbind(geomeanResults, SSMresults) )
+}
 
-data(FB)
+#bacteria_Assessment_OLD(x)
 
-# Only a few columns
-FB <- select(FB, symbol, date, open, close, adjusted)
-rolling_mean <- rollify(mean, window = 5)
-mutate(FB, mean_5 = rolling_mean(adjusted))
 
-# Our data frame summary
-summary_df <- function(x) {
-  data.frame(  
-    rolled_summary_type = c("mean", "sd",  "min",  "max",  "median"),
-    rolled_summary_val  = c(mean(x), sd(x), min(x), max(x), median(x))
+
+# New bacteria standard
+source('newBacteriaStandard_working.R')
+
+# Function to convert conventionals bacteria (e coli and enter) to format needed for function
+#bacteriaType <- 'E.COLI'#ENTEROCOCCI
+conventionalsToBacteria <- function(x, bacteriaType){
+  z <- dplyr::select(x, FDT_STA_ID, FDT_DATE_TIME2, bacteriaType) %>%
+    rename(ID = FDT_STA_ID, `Date Time` = FDT_DATE_TIME2, Value = bacteriaType) %>%
+    filter(!is.na(Value))
+  z$`Date Time` <- as.Date(z$`Date Time`)
+  z$Value <- as.numeric(z$Value)
+  return(z)
+}
+
+#z <- conventionalsToBacteria(x, 'E.COLI')
+#z2.1<-  bacteriaExceedances_NewStd(z, 10, 410, 126) %>% 
+#  filter(`STV Exceedances In Window` > 0 | `Geomean In Window` > 126) %>%
+#  dplyr::select(-associatedData) # remove embedded tibble to make table work
+#z2.1<-  bacteriaAssessmentDecision(z, 10, 410, 126)
+#unique(bacteriaAssessmentDecision(z, 10, 410, 126)$`Assessment Decision`)
+
+
+EcoliPlotlySingleStationUI <- function(id){
+  ns <- NS(id)
+  tagList(
+    wellPanel(
+      h4(strong('Single Station Data Visualization')),
+      uiOutput(ns('Ecoli_oneStationSelectionUI')),
+      plotlyOutput(ns('Ecoliplotly')),
+      br(),hr(),br(),
+      fluidRow(
+        column(6, h5('All E. coli records that are above the criteria for the ',span(strong('selected site')),' are highlighted below.'),
+               #div(style = 'height:250px;overflow-y: scroll', 
+                   h6('Old Standard (STV= 235 CFU / 100 mL, geomean = 126 CFU / 100 mL)'),
+                   DT::dataTableOutput(ns('EcoliexceedancesOldStdTableSingleSitegeomean')),
+                   DT::dataTableOutput(ns('EcoliexceedancesOldStdTableSingleSiteSTV')), br(), br(), hr(), br(), br(), 
+               #div(style = 'height:250px;overflow-y: scroll', 
+                   h6('New Standard (STV= 410 CFU / 100 mL, geomean = 126 CFU / 100 mL with additional sampling requirements)'),
+               DT::dataTableOutput(ns('EcoliexceedancesNEWStdTableSingleSite'))),
+        column(6, h5('Individual E. coli exceedance statistics for the ',span(strong('selected site')),' are highlighted below.'),
+               #div(style = 'height:250px;overflow-y: scroll',
+                   h6(strong('Old Standard (STV= 235 CFU / 100 mL, geomean = 126 CFU / 100 mL)')), 
+                   DT::dataTableOutput(ns("EcoliOldStdTableSingleSite")), br(), br(), hr(), br(), br(),
+               #div(style = 'height:250px;overflow-y: scroll', 
+                   h6(strong('New Standard (STV= 410 CFU / 100 mL, geomean = 126 CFU / 100 mL with additional sampling requirements)')), 
+                   DT::dataTableOutput(ns("EcoliNEWStdTableSingleSite")),
+               h4('See below section for detailed analysis with new recreation standard.'))),
+      hr(),br(),
+      h4(strong('New Recreation Standard Analysis')),
+      helpText('Review the 90 day windows (identified by each sample date) for STV and geomean exceedances.
+             Comments are specific to each row of data. To view the dataset within each 90 day window, use
+             the drop down box to select the start of the window in question.'),
+      fluidRow(
+        column(6, #div(style = 'height:300px;overflow-y: scroll',
+                      DT::dataTableOutput(ns('analysisTable'))),
+        column(6, uiOutput(ns('windowChoice')),
+               plotlyOutput(ns('EcoliplotlyZoom')))))
+    
   )
 }
 
-# A rolling version, with unlist = FALSE
-rolling_summary <- rollify(~summary_df(.x), window = 5, 
-                           unlist = FALSE)
 
-FB_summarised <- mutate(FB, summary_list_col = rolling_summary(adjusted))
-View(FB_summarised)
-# unnest
-View(FB_summarised %>% 
-       filter(!is.na(summary_list_col)) %>%
-       unnest())
+EcoliPlotlySingleStation <- function(input,output,session, AUdata, stationSelectedAbove){
+  ns <- session$ns
+  
+  # Select One station for individual review
+  output$Ecoli_oneStationSelectionUI <- renderUI({
+    req(stationSelectedAbove)
+    selectInput(ns('Ecoli_oneStationSelection'),strong('Select Station to Review'),choices= sort(unique(c(stationSelectedAbove(),AUdata()$FDT_STA_ID))),#unique(AUdata())$FDT_STA_ID,
+                width='300px', selected = stationSelectedAbove())})
 
+  Ecoli_oneStation <- reactive({
+    req(ns(input$Ecoli_oneStationSelection))
+    filter(AUdata(),FDT_STA_ID %in% input$Ecoli_oneStationSelection)})
 
-#Flexible calendar periods are tough!
-#https://cran.r-project.org/web/packages/tsibble/vignettes/window.html
-library(tsibble)
+  output$Ecoliplotly <- renderPlotly({
+    req(input$Ecoli_oneStationSelection, Ecoli_oneStation())
+    dat <- Ecoli_oneStation() %>%
+      mutate(newSTV = 410, geomean = 126, oldSTV = 235)
+    dat$SampleDate <- as.POSIXct(dat$FDT_DATE_TIME2, format="%m/%d/%y")
+    plot_ly(data=dat) %>%
+      add_markers(x= ~SampleDate, y= ~E.COLI,mode = 'scatter', name="E. coli (CFU / 100 mL)", marker = list(color= '#535559'),
+                  hoverinfo="text",text=~paste(sep="<br>",
+                                               paste("Date: ",SampleDate),
+                                               paste("Depth: ",FDT_DEPTH, "m"),
+                                               paste("E. coli: ",E.COLI,"CFU / 100 mL")))%>%
+      add_lines(data=dat, x=~SampleDate,y=~newSTV, mode='line', line = list(color = '#484a4c',dash = 'dot'),
+                hoverinfo = "text", text= "New STV: 410 CFU / 100 mL", name="New STV: 410 CFU / 100 mL") %>%
+      add_lines(data=dat, x=~SampleDate,y=~oldSTV, mode='line', line = list(color = 'black'),
+                hoverinfo = "text", text= "Old STV: 235 CFU / 100 mL", name="Old STV: 235 CFU / 100 mL") %>%
+      add_lines(data=dat, x=~SampleDate,y=~geomean, mode='line', line = list(color = 'black', dash= 'dash'),
+                hoverinfo = "text", text= "Geomean: 126 CFU / 100 mL", name="Geomean: 126 CFU / 100 mL") %>%
+      layout(showlegend=FALSE,
+             yaxis=list(title="E. coli (CFU / 100 mL)"),
+             xaxis=list(title="Sample Date",tickfont = list(size = 10))) 
+    })
 
-pedestrian_full <- pedestrian %>% 
-  fill_gaps(.full = TRUE)
-pedestrian_full
-
-#What if the time period we’d like to slide over happens not to be a fixed window size, 
-# for example sliding over three months. The preprocessing step is to wrap observations 
-# into monthly subsets (a list of tsibbles) using nest().
-pedestrian_mth1 <- pedestrian_full %>% 
-  mutate(YrMth = yearmonth(Date_Time)) %>% 
-  nest(-Sensor, -YrMth)
-pedestrian_mth
-
-pedestrian_mth %>% 
-  group_by(Sensor) %>% 
-  # (1)
-  # mutate(Monthly_MA = slide_dbl(data, 
-  #   ~ mean(bind_rows(.)$Count, na.rm = TRUE), .size = 3, .align = "center"
-  # ))
-  # (2) equivalent to (1)
-  mutate(Monthly_MA = slide_dbl(data, 
-                                ~ mean(.$Count, na.rm = TRUE), .size = 3, .align = "center", .bind = TRUE
-  ))
-
-# Tish's spreadsheet
-tish <- read_excel('exampleData/20172018_bacteria.xlsx', sheet = 'Cub Run') 
-tish1 <- select(tish, ID, `Date Time`, Value) %>% 
-  filter(!is.na(Value)) %>%
-  mutate(DateTime = `Date Time`) %>%
-  group_by(`Date Time`) %>% 
-  mutate(analysisWindow = slide_dbl(data, ~ mean(.$Value), .size = 3, align = 'center'))#, .bind = TRUE))
-
-
-# Tish's spreadsheet
-tish <- read_excel('exampleData/20172018_bacteria.xlsx', sheet = 'Cub Run') 
-tish1 <- select(tish, ID, `Date Time`, Value)
-
-out <- list()
-
-for ( i in 1:nrow(tish1)){
-  out[i] <- ecoliExceedances_NewStd(tish1[i,])
+  output$EcoliexceedancesOldStdTableSingleSitegeomean <- DT::renderDataTable({
+    req(Ecoli_oneStation())
+    z <-bacteria_ExceedancesGeomeanOLD(
+      Ecoli_oneStation() %>% 
+        dplyr::select(FDT_DATE_TIME2,E.COLI)%>% # Just get relavent columns, 
+        filter(!is.na(E.COLI)) #get rid of NA's
+    ) %>%
+      dplyr::select(FDT_DATE_TIME2, E.COLI, sampleMonthYear, geoMeanCalendarMonth, limit, samplesPerMonth) %>%
+      rename(FDT_DATE_TIME = FDT_DATE_TIME2) %>%# for user view consistency, same data, just different format for R purposes
+      filter(samplesPerMonth > 4, geoMeanCalendarMonth > limit) # minimum sampling rule for geomean to apply
+    DT::datatable(z, rownames = FALSE, options= list(scrollX = TRUE, pageLength = nrow(z), scrollY = "250px", dom='t')) 
+      
+  })
+  
+  output$EcoliexceedancesOldStdTableSingleSiteSTV <- DT::renderDataTable({
+    req(Ecoli_oneStation())
+    z <- bacteria_ExceedancesSTV_OLD(Ecoli_oneStation() %>%
+                                  dplyr::select(FDT_DATE_TIME2,E.COLI)%>% # Just get relavent columns, 
+                                  filter(!is.na(E.COLI)) #get rid of NA's
+                                ) %>%
+      filter(exceeds == T) %>%
+      mutate(FDT_DATE_TIME = as.character(FDT_DATE_TIME2), E.COLI = parameter) %>%
+      dplyr::select(FDT_DATE_TIME, E.COLI, limit, exceeds)
+    DT::datatable(z, rownames = FALSE, options= list(scrollX = TRUE, pageLength = nrow(z), scrollY = "250px", dom='t')) 
+    })
+  
+  output$EcoliOldStdTableSingleSite <- DT::renderDataTable({
+    req(Ecoli_oneStation())
+    z <- bacteria_Assessment_OLD(Ecoli_oneStation()) %>% dplyr::select(`Assessment Method`,everything())
+    DT::datatable(z, rownames = FALSE, options= list(scrollX = TRUE, pageLength = nrow(z), scrollY = "250px", dom='t'))  })
+  
+  ### New standard ----------------------------------------------------------------------------------
+  newSTDbacteriaData <- reactive({
+    req(Ecoli_oneStation())
+    conventionalsToBacteria(Ecoli_oneStation(), 'E.COLI')})  
+  
+  output$EcoliexceedancesNEWStdTableSingleSite <- DT::renderDataTable({
+    req(Ecoli_oneStation(),newSTDbacteriaData())
+    z <- bacteriaExceedances_NewStd(newSTDbacteriaData(), 10, 410, 126) %>% 
+      filter(`STV Exceedances In Window` > 0 | `Geomean In Window` > 126) %>%
+      dplyr::select(-associatedData) # remove embedded tibble to make table work
+    z$`Date Window Starts` <- as.character(z$`Date Window Starts`)
+    z$`Date Window Ends` <- as.character(z$`Date Window Ends`)
+    DT::datatable(z, rownames = FALSE, options= list(scrollX = TRUE, pageLength = nrow(z), scrollY = "250px", dom='t')) 
+  })
+  
+  
+  output$EcoliNEWStdTableSingleSite <- DT::renderDataTable({
+    req(Ecoli_oneStation(),newSTDbacteriaData())
+    z <- bacteriaAssessmentDecision(newSTDbacteriaData(), 10, 410, 126)  %>%
+      distinct(`Assessment Decision`) %>% # only grab 1 record
+      mutate(`Assessment Method`= 'New Recreation Standard') %>%
+      dplyr::select(`Assessment Method`, `Assessment Decision`) #only grab decision
+    DT::datatable(z, rownames = FALSE, options= list(scrollX = TRUE, pageLength = nrow(z), scrollY = "250px", dom='t')) 
+  })
+  
+  output$analysisTable <- DT::renderDataTable({
+    req(Ecoli_oneStation(),newSTDbacteriaData())
+    z <- bacteriaAssessmentDecision(newSTDbacteriaData(), 10, 410, 126) %>%
+      dplyr::select(-associatedData) # remove embedded tibble to make table work
+    DT::datatable(z, rownames = FALSE, options= list(scrollX = TRUE, pageLength = nrow(z), scrollY = "400px", dom='t'))
+    })
+  
+  output$windowChoice <- renderUI({
+    req(Ecoli_oneStation(),newSTDbacteriaData())
+    selectInput(ns('windowChoice_'),'Select 90 day window start date', choices = unique(newSTDbacteriaData()$`Date Time`))})
+  
+  output$EcoliplotlyZoom <- renderPlotly({
+    req(input$windowChoice_, Ecoli_oneStation(),newSTDbacteriaData())
+    windowStart <- bacteriaExceedances_NewStd(newSTDbacteriaData(), 10, 410, 126) %>%
+      filter(`Date Window Starts` == input$windowChoice_) #'2011-02-17')#
+    
+    windowData <- dplyr::select(windowStart, associatedData) %>%
+      unnest() %>%
+      mutate(`Date Window Starts` = as.POSIXct(unique(windowStart$`Date Window Starts`, format="%m/%d/%y")),
+             `Date Window Ends` = as.POSIXct(unique(windowStart$`Date Window Ends`, format="%m/%d/%y")),
+             newSTV = 410, geomean = 126)
+    windowData$`Date Time` <- as.POSIXct(strptime(windowData$`Date Time`, format="%Y-%m-%d"))#as.POSIXct(windowData$`Date Time`, format="%Y-%m-%d", tz='GMT') + as.difftime(1, units="days")
+    
+    plot_ly(data=windowData) %>%
+      add_markers(x= ~`Date Time`, y= ~Value,mode = 'scatter', name="E. coli (CFU / 100 mL)", marker = list(color= '#535559'),
+                  hoverinfo="text",text=~paste(sep="<br>",
+                                               paste("Date: ",`Date Time`),
+                                               paste("E. coli: ",Value,"CFU / 100 mL"))) %>%
+      add_lines(data=windowData, x=~`Date Time`, y=~E.COLI_geomean, mode='line', line = list(color = 'orange', dash= 'dash'),
+                hoverinfo = "text", text= ~paste("Window Geomean: ", format(E.COLI_geomean,digits=3)," CFU / 100 mL", sep=''), 
+                name="Window Geomean") %>%
+      add_lines(data=windowData, x=~`Date Time`,y=~newSTV, mode='line', line = list(color = '#484a4c',dash = 'dot'),
+                hoverinfo = "text", text= "New STV: 410 CFU / 100 mL", name="New STV: 410 CFU / 100 mL") %>%
+      add_lines(data=windowData, x=~`Date Time`,y=~geomean, mode='line', line = list(color = 'black', dash= 'dash'),
+                hoverinfo = "text", text= "Geomean: 126 CFU / 100 mL", name="Geomean: 126 CFU / 100 mL") %>%
+      layout(showlegend=FALSE,
+             yaxis=list(title="E. coli (CFU / 100 mL)"),
+             xaxis=list(title="Sample Date",tickfont = list(size = 10))) 
+  })
+ 
   
 }
 
 
-# Tish's spreadsheet
-tish <- read_excel('exampleData/20172018_bacteria.xlsx', sheet = 'Cub Run') 
-tish1 <- select(tish, ID, `Date Time`, Value)
-tish1$`Date Time` <- as.Date(tish1$`Date Time`,format = '%Y-%m-%d')
+shinyApp(ui,server)
 
-x <- tish1
-# Figure out if other data in 90 day window of input date time
 
-ecoliExceedances_NewStd <- function(x, sampleRequirement){
-  out <- list()
-  for( i in 1 : nrow(x)){
-    time1 <- x$`Date Time`[i]
-    timePlus90 <- ymd(x$`Date Time`[i]) + days(90)
-    z <- filter(x, `Date Time` >= time1 & `Date Time` <= timePlus90) %>% 
-      mutate(nSamples = n(), E.COLI_geomean = FSA::geomean(Value)) 
-    # only add to output if sampleRequirement met in window
-    if(unique(z$nSamples) >= sampleRequirement){
-      out[[i]] <-  tibble(`Date Window Starts` = time1, `Date Window Ends` = timePlus90, 
-                          `Samples in 90 Day Window` = unique(z$nSamples), 
-                          `Window Geomean` = unique(z$E.COLI_geomean), associatedData = list(z)) }
-  }
-  return(out)
-}
-test <- ecoliExceedances_NewStd(tish1, 4)
+ui <- fluidPage(
+  selectInput('stationSelection', 'Station Selection', choices = unique(AUData$FDT_STA_ID)),
+  helpText('Review each site using the single site visualization section. There are no WQS for Total Nitrogen.'),
+  EcoliPlotlySingleStationUI('Ecoli')
+)
 
-# Extract info from list
-results <- map_dfr(test, extract, c('Date Window Starts', 'Date Window Ends', 'Samples in 90 Day Window', 'Window Geomean')) %>% # exctract necessary Columns
-  filter(`Window Geomean` > 126) %>% # Just pull exceeding geomeans to start
-  mutate(newInt = NA)#intervals = lubridate::interval(`Date Window Starts`,`Date Window Ends`),
-  #       uniqueInterval = NA) #%>%
-  #fill(intervals)
-
-#results$newInt <- NA
-#x <- results$`Date Window Ends`[1]
-#if(results$`Date Window Starts`[2] < x){results$newInt[2] <- as.character(x)}else{x <- results$`Date Window Ends`[2]}
-#if(results$`Date Window Starts`[3] < x){results$newInt[3] <- as.character(x)}else{x <- results$`Date Window Ends`[3]}
-#if(results$`Date Window Starts`[4] < x){results$newInt[4] <- as.character(x)}else{x <- results$`Date Window Ends`[4]}
-##change
-#if(results$`Date Window Starts`[5] < x){results$newInt[5] <- as.character(x)}else{x <- results$`Date Window Ends`[5]}
-#if(results$`Date Window Starts`[6] < x){results$newInt[6] <- as.character(x)}else{x <- results$`Date Window Ends`[6]}
-#if(results$`Date Window Starts`[7] < x){results$newInt[7] <- as.character(x)}else{x <- results$`Date Window Ends`[7]}
-#if(results$`Date Window Starts`[8] < x){results$newInt[8] <- as.character(x)}else{x <- results$`Date Window Ends`[8]}
-
-nonOverlappingIntervals <- function(results){
-  results$newInt <- NA
-  x <- results$`Date Window Ends`[1]
+server <- function(input,output,session){
+  stationData <- eventReactive( input$stationSelection, {
+    filter(AUData, FDT_STA_ID %in% input$stationSelection) })
+  stationSelected <- reactive({input$stationSelection})
   
-  for(i in 1:nrow(results)){
-    if(results$`Date Window Starts`[i] < x){results$newInt[i] <- as.character(x)
-    }else{
-      x <- results$`Date Window Ends`[i]
-      results$newInt[i] <- as.character(x)}  }
+  AUData <- reactive({filter(conventionals_HUC, ID305B_1 %in% 'VAW-H01R_JMS04A00' | 
+                               ID305B_2 %in% 'VAW-H01R_JMS04A00' | 
+                               ID305B_2 %in% 'VAW-H01R_JMS04A00')%>% 
+      left_join(WQSvalues, by = 'CLASS')})
   
-  uniqueInt <- unique(results$newInt)
-  finalResults <- filter(results, `Date Window Ends` %in% as.Date(unique(results$newInt))) %>%
-    select(-newInt)
-  
-  return(finalResults)
-}
-
-
-nonOverlappingExceedanceResults <- nonOverlappingIntervals(results)
-
-
-
-
-results$newInt <- NA
-for(i in 1: nrow(results)){
-  if(i == 1){    x <- results$`Date Window Ends`[1]  }
-  results$newInt[i] <- ifelse(results$`Date Window Ends`[i] > results$`Date Window Starts`[i+1], T, F)
-}
-series <- results$intervals
-  
-
-  x <- 0
-  repeat {
-    x <- x + 1
-    print(x)
-    results$uniqueInterval <- x
-    if(!(results$`Date Window Starts` %within% series[x])){
-      results$uniqueInterval <- x
-    }
-    #b <- snap_bufferMethod(POINT,MULTILINESTRING,bufferDistances[x])
-    #if (nrow(b) > 0 | x == length(bufferDistances)) break   }
-  
-  
-  
-  #group_by(`Date Window Starts`) %>%
- # mutate(tmp = `Date Window Ends`[`Date Window Ends` < intervals])
-  for (i in 1:nrow(results)){
-    currentInterval <- lubridate::interval(results$`Date Window Starts`[i],results$`Date Window Ends`[i])
-    if(results$`Date Window Starts`[i+1] %within% currentInterval){results$intervals[i] <- currentInterval}
-  }
-  
-  #rowwise() %>%
-  #dplyr::summarize(int_overlaps(intervals))
-
-  mutate(`Lag Window End` = lag(`Date Window Ends`, 1), # lag the end of previous window by 1 to line up with next window start
-         `Unique Window` = ifelse(`Date Window Starts` > `Lag Window End`, T, F))
-  
-results$`Date Window Ends`[1] %within% lubridate::interval(ymd(results$`Date Window Starts`[2]),ymd(results$`Date Window Ends`[2]))
-results$`Date Window Starts`[2] >   results$`Date Window Ends`[1] 
-
-z <- lubridate::interval(results$`Date Window Starts`[1],results$`Date Window Ends`[1])
-
-int_overlaps()
-
-time1 <- x$`Date Time`[1]
-  timePlus90 <- ymd(x$`Date Time`[1]) + days(90)
-  z <- filter(x, `Date Time` >= time1 & `Date Time` <= timePlus90) %>% 
-    mutate(nSamples = n(), E.COLI_geomean = FSA::geomean(Value)) 
-  return(tibble(`Samples in 90 Day Window` = unique(z$nSamples), associatedData = list(z)))
-}
-
-z <- ecoliExceedances_NewStd(tish1)
-
-
-bacteria_Assessment <- function(x){
-  bacteria <- dplyr::select(x,FDT_DATE_TIME2,E.COLI) %>% # Just get relavent columns, 
-    filter(!is.na(E.COLI))%>% #get rid of NA's
-    mutate(SampleDate = format(FDT_DATE_TIME2,"%m/%d/%y"), # Separate sampling events by day
-           singleSampleMaximum=ifelse(E.COLI>235,T,F), # Find any single sample exceedances
-           previousSample=lag(SampleDate,1),
-           previousSampleECOLI=lag(E.COLI,1)) %>% # Line up previous sample with current sample line
-    rowwise() %>% 
-    mutate(sameSampleMonth= as.numeric(strsplit(SampleDate,'/')[[1]][1])  -  as.numeric(strsplit(previousSample,'/')[[1]][1])) %>% # See if sample months are the same, e.g. more than one sample per calendar month
-    filter(singleSampleMaximum == T | sameSampleMonth == 0) %>% # keep only rows with single sample exceedances or multiple samples per calendar month to then test for geomean
-    rowwise() %>% 
-    mutate(geoMeanCalendarMonth=FSA::geomean(c(E.COLI,previousSampleECOLI))) %>% # Calculate geomean
-    filter(singleSampleMaximum == T | geoMeanCalendarMonth > 126) %>% #find exceedances to either rule
-    dplyr::select(FDT_DATE_TIME2 , E.COLI) # only keep columns that will be important to assessors
-  return(bacteria)
-}
-
-
-ecoliExceedances_NewStd <- function(x){
-  ecoli <- dplyr::select(x, FDT_DATE_TIME2, `E.COLI`) %>% # Just get relevant columns
-    filter(!is.na(`E.COLI`)) 
-  elapsedTime <- min(ecoli$FDT_DATE_TIME2) %--% max(ecoli$FDT_DATE_TIME2)
-  as.duration(elapsedTime)
+  callModule(EcoliPlotlySingleStation,'Ecoli', AUData, stationSelected)#input$stationSelection)
   
 }

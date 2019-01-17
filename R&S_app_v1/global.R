@@ -15,6 +15,7 @@ library(magrittr)
 
 # Bring in modules
 source('appModules/multipleDependentSelectizeArguments.R')
+source('newBacteriaStandard_working.R')
 
 modulesToReadIn <- c('temperature','pH','DO','SpCond','Salinity','TN','Ecoli','chlA')
 for (i in 1:length(modulesToReadIn)){
