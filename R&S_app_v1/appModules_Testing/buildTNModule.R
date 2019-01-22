@@ -1,3 +1,15 @@
+source('testingDataset.R')
+
+AUData <- filter(conventionals_HUC, ID305B_1 %in% 'VAW-H01R_JMS04A00' | 
+                   ID305B_2 %in% 'VAW-H01R_JMS04A00' | 
+                   ID305B_2 %in% 'VAW-H01R_JMS04A00')%>% 
+  left_join(WQSvalues, by = 'CLASS')
+
+x <-filter(AUData, FDT_STA_ID %in% '2-JMS279.41') 
+
+# No Assessment functions bc no std
+
+
 TNPlotlySingleStationUI <- function(id){
   ns <- NS(id)
   tagList(
@@ -55,3 +67,28 @@ TNPlotlySingleStation <- function(input,output,session, AUdata, stationSelectedA
   })
   
 }
+
+
+
+
+ui <- fluidPage(
+  helpText('Review each site using the single site visualization section. There are no WQS for Specific Conductivity.'),
+  TNPlotlySingleStationUI('TN')
+)
+
+server <- function(input,output,session){
+  stationData <- eventReactive( input$stationSelection, {
+    filter(AUData, FDT_STA_ID %in% input$stationSelection) })
+  stationSelected <- reactive({input$stationSelection})
+  
+  AUData <- reactive({filter(conventionals_HUC, ID305B_1 %in% 'VAW-H01R_JMS04A00' | 
+                               ID305B_2 %in% 'VAW-H01R_JMS04A00' | 
+                               ID305B_2 %in% 'VAW-H01R_JMS04A00')%>% 
+      left_join(WQSvalues, by = 'CLASS')})
+  
+  callModule(TNPlotlySingleStation,'TN', AUData, stationSelected)
+  
+}
+
+shinyApp(ui,server)
+

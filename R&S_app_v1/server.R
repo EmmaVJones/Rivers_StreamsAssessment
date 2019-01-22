@@ -236,5 +236,11 @@ shinyServer(function(input, output, session) {
   ## Enteroccoci Sub Tab ##------------------------------------------------------------------------------------------------------
   callModule(EnteroPlotlySingleStation,'Entero', AUData, stationSelected)#input$stationSelection)
   
+  ## Total Phosphorus Sub Tab ##------------------------------------------------------------------------------------------------------
+  callModule(TPPlotlySingleStation,'TP', AUData, stationSelected)
+  
+  ## Sulfate Sub Tab ##------------------------------------------------------------------------------------------------------
+  callModule(DSulfatePlotlySingleStation,'DSulfate', AUData, stationSelected)
+  
 })
 

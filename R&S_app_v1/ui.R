@@ -16,35 +16,35 @@ shinyUI(fluidPage(theme="yeti.css",
                                  ".shiny-output-error:before { visibility: hidden; }"
                       ),
                       navbarPage(paste("VDEQ ",assessmentCycle," Rivers and Streams Assessment Tool", sep=''),
-                                 #tabPanel('Data Upload',
-                                #          h3('Tool Overview'),
-                                #          p("The Rivers and Streams Assessment Tool is designed to expedite analysis, assessment
-                                #            decisions, and quality assurance/quality control (QA/QC) procedures for Virginia's
-                                #            contribution to the 2020 Integrated Report (IR). The data window analyzed covers 
-                                #            January 1, 2013 to December 31, 2018. Tool users can expect significant time savings
-                                #            on repetitive procedures including: raw data organization from disparate databases, 
-                                #            geospatial organization of stations by assessment unit, standard/criteria calculations, 
-                                #            and data visualization."),
-                                #          br(),br(),br(),
-                                #          h3('Tool Inputs'),
-                                #          p('In order to reduce processing time and facilitate peristent data storage, users must
-                                #            upload certain datasets that follow a specified template. These include their regional
-                                #            Stations Table 2.0 and Regional Assessment Unit shapefiles.'),
-                                #          h5('Stations Table 2.0'),
-                                #          helpText('This dataset is derived before any Rivers and Streams Assessment Tool analysis 
-                                #                   procedures can commence using the ',span(strong('XXXXXX TOOL.')), 'After completing
-                                #                   the requisite analyses from the ',span(strong('XXXXXX TOOL')),'once, users can 
-                                #                   upload their results to the Rivers and Streams Assessment Tool each time they open
-                                #                   the tool for analysis.'),
-                                #          fileInput('stationsTable','Choose your Regional Stations Table 2.0.',
-                                #                    accept = c(".csv")),
-                                #          h5('Regional Assessment Units'),
-                                #          helpText('This shapefile is the current working copy of the regional assessment units. It must
-                                #                    be uploaded to the app on startup and/or any time any spatial changes to assessment
-                                #                    units (split an assessment unit) are completed in ArcGIS to ensure the most up to 
-                                #                    date assessment unit information is being utlized by the app.'),
-                                #          fileInput('regionalAUshapefile','Choose your Regional Assessment Unit shapefile.',
-                                #                    accept = c(".dbf",".prj",".sbn",".sbx",".shp","shp.xml",".shx")),
+                                 tabPanel('Data Upload',
+                                          h3('Tool Overview'),
+                                          p("The Rivers and Streams Assessment Tool is designed to expedite analysis, assessment
+                                            decisions, and quality assurance/quality control (QA/QC) procedures for Virginia's
+                                            contribution to the 2020 Integrated Report (IR). The data window analyzed covers 
+                                            January 1, 2013 to December 31, 2018. Tool users can expect significant time savings
+                                            on repetitive procedures including: raw data organization from disparate databases, 
+                                            geospatial organization of stations by assessment unit, standard/criteria calculations, 
+                                            and data visualization."),
+                                          br(),br(),br(),
+                                          h3('Tool Inputs'),
+                                          p('In order to reduce processing time and facilitate peristent data storage, users must
+                                            upload certain datasets that follow a specified template. These include their regional
+                                            Stations Table 2.0 and Regional Assessment Unit shapefiles.'),
+                                          h5('Stations Table 2.0'),
+                                          helpText('This dataset is derived before any Rivers and Streams Assessment Tool analysis 
+                                                   procedures can commence using the ',span(strong('XXXXXX TOOL.')), 'After completing
+                                                   the requisite analyses from the ',span(strong('XXXXXX TOOL')),'once, users can 
+                                                   upload their results to the Rivers and Streams Assessment Tool each time they open
+                                                   the tool for analysis.'),
+                                          fileInput('stationsTable','Choose your Regional Stations Table 2.0.',
+                                                    accept = c(".csv")),
+                                          h5('Regional Assessment Units'),
+                                          helpText('This shapefile is the current working copy of the regional assessment units. It must
+                                                    be uploaded to the app on startup and/or any time any spatial changes to assessment
+                                                    units (split an assessment unit) are completed in ArcGIS to ensure the most up to 
+                                                    date assessment unit information is being utlized by the app.'),
+                                          fileInput('regionalAUshapefile','Choose your Regional Assessment Unit shapefile.',
+                                                    accept = c(".dbf",".prj",".sbn",".sbx",".shp","shp.xml",".shx")),
                                 #          h5('Comment Files'),
                                 #          helpText('Comment files are generated each time an assessor utlizes the Rivers and Streams 
                                 #                   Assessment Tool comment fields. Though entering information into these fields is not
@@ -54,13 +54,13 @@ shinyUI(fluidPage(theme="yeti.css",
                                 #                   Streams Assessment Tool updates across IR windows to maintain regional assessment records.'),
                                 #          fileInput('commentFile','Choose most recent comment file.',
                                 #                    accept = c(".csv")),
-                                #          hr(),br(),
-                                #          h4('Station Table QA'),
-                                #          helpText('This automated analysis section highlights any stations from the Conventionals dataset
-                                #                   that do not have appropriate Station Table 2.0 information.',
-                                #                   span(strong('Failure to address these stations will guarantee they will not be represented
-                                #                               in subsequent analyses by the Rivers and Streams Assessment tool.'))),
-                                #          DT::dataTableOutput('stationTableMissingStations')),
+                                          hr(),br(),
+                                          h4('Station Table QA'),
+                                          helpText('This automated analysis section highlights any stations from the Conventionals dataset
+                                                   that do not have appropriate Station Table 2.0 information.',
+                                                   span(strong('Failure to address these stations will guarantee they will not be represented
+                                                               in subsequent analyses by the Rivers and Streams Assessment tool.'))),
+                                          DT::dataTableOutput('stationTableMissingStations')),
                                  tabPanel('Watershed Selection',
                                           sidebarPanel(
                                             dynamicSelectInput("DEQregionSelection", "Select DEQ Assessment Region", multiple = FALSE),
@@ -136,12 +136,14 @@ shinyUI(fluidPage(theme="yeti.css",
                                                       tabPanel("Salinity",
                                                                helpText('Review each site using the single site visualization section. There are no WQS for Salinity.'),
                                                                salinityPlotlySingleStationUI('salinity')),
-                                                      tabPanel("Nitrogen",
+                                                      tabPanel("Total Nitrogen",
                                                                helpText('Review each site using the single site visualization section. There are no WQS for Total Nitrogen.'),
                                                                TNPlotlySingleStationUI('TN')),
                                                       tabPanel("Ammonia"),
                                                       tabPanel("NH3"),
-                                                      tabPanel("Phosphorus"),
+                                                      tabPanel("Total Phosphorus",
+                                                               helpText('Review each site using the single site visualization section. There are no WQS for Total Phosphorus.'),
+                                                               TPPlotlySingleStationUI('TP')),
                                                       tabPanel("Fecal Coliform"),
                                                       tabPanel("E. Coli",
                                                                helpText('Review each site using the single site visualization section. Both the old and the new E. coli assessment
@@ -154,10 +156,12 @@ shinyUI(fluidPage(theme="yeti.css",
                                                       tabPanel("Chlorophyll a",
                                                                helpText('Review each site using the single site visualization section. Chlorophyll a standards only apply to some stations.'),
                                                                chlAPlotlySingleStationUI('chlA')),
-                                                      tabPanel("SSC"),
-                                                      tabPanel("Nitrite"),
+                                                      tabPanel("Suspended Sediments"),
+                                                      tabPanel("Nitrate"),
                                                       tabPanel("Chloride"),
-                                                      tabPanel("Sulfate")
+                                                      tabPanel("Sulfate",
+                                                               helpText('Review each site using the single site visualization section. Total and dissolved sulfate are presented. PWS standards for Total Sulfate only apply to some stations.'),
+                                                               DSulfatePlotlySingleStationUI('DSulfate'))
                                                       )),
                                            tabPanel('EDAS Data', br(), br(), br(), h4('Placeholder'),br(), br(), br()),
                                            tabPanel('Metals Data', br(), br(), br(), h4('Placeholder'),br(), br(), br()),
