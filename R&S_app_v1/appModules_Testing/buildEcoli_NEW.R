@@ -7,7 +7,7 @@ AUData <- filter(conventionals_HUC, ID305B_1 %in% 'VAW-H01R_JMS04A00' |
                    ID305B_2 %in% 'VAW-H01R_JMS04A00')%>% 
   left_join(WQSvalues, by = 'CLASS')
 
-x <-filter(AUData, FDT_STA_ID %in% '2-JMS282.28') 
+x <-filter(AUData, FDT_STA_ID %in% '2-JMS279.41')#'2-JMS282.28') 
 #------------------------------------------------------------------------------------------
 #parameterDataset <- bacteriaGeomean
 #parameter <- 'ECOLI'
@@ -45,47 +45,54 @@ quickStats <- function(parameterDataset, parameter){
 #bacteria1[34,] <- c('2013-06-22 15:25:00',777)
 #bacteria1[35,] <- c('2013-06-29 15:25:00',98)
 
-bacteria_ExceedancesGeomeanOLD <- function(x){
+bacteriaType <- 'E.COLI'
+geomeanLimit <- 126
+
+bacteria_ExceedancesGeomeanOLD <- function(x, bacteriaType, geomeanLimit){
   suppressWarnings(mutate(x, SampleDate = format(FDT_DATE_TIME2,"%m/%d/%y"), # Separate sampling events by day
-         previousSample=lag(SampleDate,1),previousSampleECOLI=lag(E.COLI,1)) %>% # Line up previous sample with current sample line
+         previousSample=lag(SampleDate,1),previousSampleBacteria=lag(get(bacteriaType),1)) %>% # Line up previous sample with current sample line
     rowwise() %>% 
     mutate(sameSampleMonth= as.numeric(strsplit(SampleDate,'/')[[1]][1])  -  as.numeric(strsplit(previousSample,'/')[[1]][1])) %>% # See if sample months are the same, e.g. more than one sample per calendar month
     filter(sameSampleMonth == 0 | is.na(sameSampleMonth)) %>% # keep only rows with multiple samples per calendar month  or no previous sample (NA) to then test for geomean
     # USING CALENDAR MONTH BC THAT'S HOW WRITTEN IN GUIDANCE, rolling 4 wk windows would have been more appropriate
     mutate(sampleMonthYear = paste(month(as.Date(SampleDate,"%m/%d/%y")),year(as.Date(SampleDate,"%m/%d/%y")),sep='/')) %>% # grab sample month and year to group_by() for next analysis
     group_by(sampleMonthYear) %>%
-    mutate(geoMeanCalendarMonth = FSA::geomean(as.numeric(E.COLI)), # Calculate geomean
-           limit = 126, samplesPerMonth = n()))
-}
- 
-bacteria_ExceedancesSTV_OLD <- function(x){                                    
-  x %>% rename(parameter = !!names(.[2])) %>% # rename columns to make functions easier to apply
-    mutate(limit = 235, exceeds = ifelse(parameter > limit, T, F)) # Single Sample Maximum 
+    mutate(geoMeanCalendarMonth = FSA::geomean(as.numeric(get(bacteriaType))), # Calculate geomean
+           limit = geomeanLimit, samplesPerMonth = n()))
 }
 
+bacteria_ExceedancesGeomeanOLD( x, 'E.COLI', 126)
+ 
+STVlimit <- 235
+bacteria_ExceedancesSTV_OLD <- function(x, STVlimit){                                    
+  x %>% rename(parameter = !!names(.[2])) %>% # rename columns to make functions easier to apply
+    mutate(limit = STVlimit, exceeds = ifelse(parameter > limit, T, F)) # Single Sample Maximum 
+}
+bacteria_ExceedancesSTV_OLD(bacteria, STVlimit)
 
 # How bacteria is assessed
-bacteria_Assessment_OLD <- function(x){
-  bacteria <- dplyr::select(x,FDT_DATE_TIME2,E.COLI)%>% # Just get relavent columns, 
-    filter(!is.na(E.COLI)) #get rid of NA's
+bacteria_Assessment_OLD <- function(x, bacteriaType, geomeanLimit, STVlimit){
+  bacteria <- dplyr::select(x,FDT_DATE_TIME2,bacteriaType)%>% # Just get relavent columns, 
+    filter(!is.na(get(bacteriaType))) #get rid of NA's
   # Geomean Analysis (if enough n)
-  bacteriaGeomean <- bacteria_ExceedancesGeomeanOLD(bacteria) %>%     
+  bacteriaGeomean <- bacteria_ExceedancesGeomeanOLD(bacteria, bacteriaType, geomeanLimit) %>%     
     distinct(sampleMonthYear, .keep_all = T) %>%
     filter(samplesPerMonth > 4, geoMeanCalendarMonth > limit) %>% # minimum sampling rule for geomean to apply
     mutate(exceeds = TRUE) %>%
     select(sampleMonthYear, geoMeanCalendarMonth, limit, exceeds, samplesPerMonth)
-  geomeanResults <- quickStats(bacteriaGeomean, 'ECOLI') %>% mutate(ECOLI_STAT = recode(ECOLI_STAT, 'Review' = 'Review if ECOLI_VIO > 1' ),
-                                                                    `Assessment Method` = 'Old Monthly Geomean')
-  
+  geomeanResults <- quickStats(bacteriaGeomean, bacteriaType) %>%
+    mutate(`Assessment Method` = 'Old Monthly Geomean')
+  geomeanResults[,4] <- recode(geomeanResults[,4], 'Review' = paste('Review if ', bacteriaType,'_VIO > 1',sep=''))
+
   # Single Sample Maximum Analysis
-  bacteriaSSM <- bacteria_ExceedancesSTV_OLD(bacteria) 
-  SSMresults <- quickStats(bacteriaSSM, 'ECOLI') %>% mutate(`Assessment Method` = 'Old Single Sample Maximum')
+  bacteriaSSM <- bacteria_ExceedancesSTV_OLD(bacteria, STVlimit) 
+  SSMresults <- quickStats(bacteriaSSM, bacteriaType) %>% mutate(`Assessment Method` = 'Old Single Sample Maximum')
   return( rbind(geomeanResults, SSMresults) )
 }
 
-#bacteria_Assessment_OLD(x)
+#bacteria_Assessment_OLD(x, 'E.COLI', 126, 235)
 
-
+bacteria_Assessment_OLD(filter(conventionals, FDT_STA_ID %in% '2-DCK003.94'), 'ENTEROCOCCI', 35, 104)
 
 # New bacteria standard
 source('newBacteriaStandard_working.R')
@@ -185,11 +192,10 @@ EcoliPlotlySingleStation <- function(input,output,session, AUdata, stationSelect
 
   output$EcoliexceedancesOldStdTableSingleSitegeomean <- DT::renderDataTable({
     req(Ecoli_oneStation())
-    z <-bacteria_ExceedancesGeomeanOLD(
-      Ecoli_oneStation() %>% 
-        dplyr::select(FDT_DATE_TIME2,E.COLI)%>% # Just get relavent columns, 
-        filter(!is.na(E.COLI)) #get rid of NA's
-    ) %>%
+    z <- bacteria_ExceedancesGeomeanOLD(Ecoli_oneStation() %>% 
+                                          dplyr::select(FDT_DATE_TIME2,E.COLI)%>% # Just get relavent columns, 
+                                          filter(!is.na(E.COLI)), #get rid of NA's
+                                        'E.COLI', 126) %>%
       dplyr::select(FDT_DATE_TIME2, E.COLI, sampleMonthYear, geoMeanCalendarMonth, limit, samplesPerMonth) %>%
       rename(FDT_DATE_TIME = FDT_DATE_TIME2) %>%# for user view consistency, same data, just different format for R purposes
       filter(samplesPerMonth > 4, geoMeanCalendarMonth > limit) # minimum sampling rule for geomean to apply
@@ -200,9 +206,9 @@ EcoliPlotlySingleStation <- function(input,output,session, AUdata, stationSelect
   output$EcoliexceedancesOldStdTableSingleSiteSTV <- DT::renderDataTable({
     req(Ecoli_oneStation())
     z <- bacteria_ExceedancesSTV_OLD(Ecoli_oneStation() %>%
-                                  dplyr::select(FDT_DATE_TIME2,E.COLI)%>% # Just get relavent columns, 
-                                  filter(!is.na(E.COLI)) #get rid of NA's
-                                ) %>%
+                                       dplyr::select(FDT_DATE_TIME2,E.COLI)%>% # Just get relavent columns, 
+                                       filter(!is.na(E.COLI)) #get rid of NA's
+                                     , 235 ) %>%
       filter(exceeds == T) %>%
       mutate(FDT_DATE_TIME = as.character(FDT_DATE_TIME2), E.COLI = parameter) %>%
       dplyr::select(FDT_DATE_TIME, E.COLI, limit, exceeds)
@@ -211,7 +217,7 @@ EcoliPlotlySingleStation <- function(input,output,session, AUdata, stationSelect
   
   output$EcoliOldStdTableSingleSite <- DT::renderDataTable({
     req(Ecoli_oneStation())
-    z <- bacteria_Assessment_OLD(Ecoli_oneStation()) %>% dplyr::select(`Assessment Method`,everything())
+    z <- bacteria_Assessment_OLD(Ecoli_oneStation(), 'E.COLI', 126, 235) %>% dplyr::select(`Assessment Method`,everything())
     DT::datatable(z, rownames = FALSE, options= list(scrollX = TRUE, pageLength = nrow(z), scrollY = "250px", dom='t'))  })
   
   ### New standard ----------------------------------------------------------------------------------

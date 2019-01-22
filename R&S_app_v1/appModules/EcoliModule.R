@@ -36,7 +36,6 @@ EcoliPlotlySingleStationUI <- function(id){
     )
 }
 
-
 EcoliPlotlySingleStation <- function(input,output,session, AUdata, stationSelectedAbove){
   ns <- session$ns
   
@@ -74,11 +73,10 @@ EcoliPlotlySingleStation <- function(input,output,session, AUdata, stationSelect
   
   output$EcoliexceedancesOldStdTableSingleSitegeomean <- DT::renderDataTable({
     req(Ecoli_oneStation())
-    z <-bacteria_ExceedancesGeomeanOLD(
-      Ecoli_oneStation() %>% 
-        dplyr::select(FDT_DATE_TIME2,E.COLI)%>% # Just get relavent columns, 
-        filter(!is.na(E.COLI)) #get rid of NA's
-    ) %>%
+    z <- bacteria_ExceedancesGeomeanOLD(Ecoli_oneStation() %>% 
+                                          dplyr::select(FDT_DATE_TIME2,E.COLI)%>% # Just get relavent columns, 
+                                          filter(!is.na(E.COLI)), #get rid of NA's
+                                        'E.COLI', 126) %>%
       dplyr::select(FDT_DATE_TIME2, E.COLI, sampleMonthYear, geoMeanCalendarMonth, limit, samplesPerMonth) %>%
       rename(FDT_DATE_TIME = FDT_DATE_TIME2) %>%# for user view consistency, same data, just different format for R purposes
       filter(samplesPerMonth > 4, geoMeanCalendarMonth > limit) # minimum sampling rule for geomean to apply
@@ -91,7 +89,7 @@ EcoliPlotlySingleStation <- function(input,output,session, AUdata, stationSelect
     z <- bacteria_ExceedancesSTV_OLD(Ecoli_oneStation() %>%
                                        dplyr::select(FDT_DATE_TIME2,E.COLI)%>% # Just get relavent columns, 
                                        filter(!is.na(E.COLI)) #get rid of NA's
-    ) %>%
+                                     , 235 ) %>%
       filter(exceeds == T) %>%
       mutate(FDT_DATE_TIME = as.character(FDT_DATE_TIME2), E.COLI = parameter) %>%
       dplyr::select(FDT_DATE_TIME, E.COLI, limit, exceeds)
@@ -100,7 +98,7 @@ EcoliPlotlySingleStation <- function(input,output,session, AUdata, stationSelect
   
   output$EcoliOldStdTableSingleSite <- DT::renderDataTable({
     req(Ecoli_oneStation())
-    z <- bacteria_Assessment_OLD(Ecoli_oneStation()) %>% dplyr::select(`Assessment Method`,everything())
+    z <- bacteria_Assessment_OLD(Ecoli_oneStation(), 'E.COLI', 126, 235) %>% dplyr::select(`Assessment Method`,everything())
     DT::datatable(z, rownames = FALSE, options= list(scrollX = TRUE, pageLength = nrow(z), scrollY = "250px", dom='t'))  })
   
   ### New standard ----------------------------------------------------------------------------------
@@ -165,7 +163,7 @@ EcoliPlotlySingleStation <- function(input,output,session, AUdata, stationSelect
   
   output$rawData <- DT::renderDataTable({
     req(input$windowChoice_, Ecoli_oneStation(),newSTDbacteriaData())
-    z <- dplyr::select(Ecoli_oneStation(), FDT_STA_ID, FDT_DATE_TIME, E.COLI, RMK_ECOLI)
+    z <- dplyr::select(Ecoli_oneStation(), FDT_STA_ID, FDT_DATE_TIME, E.COLI ,RMK_ECOLI)
     DT::datatable(z, options= list(scrollX = TRUE, pageLength = nrow(z), scrollY = "400px", dom='t'))
   })
   
