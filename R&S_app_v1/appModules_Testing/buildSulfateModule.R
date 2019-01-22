@@ -1,4 +1,5 @@
 source('testingDataset.R')
+monStationTemplate <- read_excel('data/tbl_ir_mon_stations_template.xlsx') # from X:\2018_Assessment\StationsDatabase\VRO
 
 
 conventionals_HUC<- filter(conventionals, Huc6_Vahu6 %in% 'JU52') %>%
