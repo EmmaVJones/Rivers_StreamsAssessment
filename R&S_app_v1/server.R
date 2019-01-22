@@ -233,5 +233,8 @@ shinyServer(function(input, output, session) {
   ## Chlorophyll a Sub Tab ##------------------------------------------------------------------------------------------------------
   callModule(chlAPlotlySingleStation,'chlA', AUData, stationSelected)
   
+  ## Enteroccoci Sub Tab ##------------------------------------------------------------------------------------------------------
+  callModule(EnteroPlotlySingleStation,'Entero', AUData, stationSelected)#input$stationSelection)
+  
 })
 

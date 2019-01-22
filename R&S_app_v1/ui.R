@@ -147,7 +147,10 @@ shinyUI(fluidPage(theme="yeti.css",
                                                                helpText('Review each site using the single site visualization section. Both the old and the new E. coli assessment
                                                                         method statistics are presented in the station visualization section.'),
                                                                EcoliPlotlySingleStationUI('Ecoli')),
-                                                      tabPanel("Enterococci"),
+                                                      tabPanel("Enterococci",
+                                                               helpText('Review each site using the single site visualization section. Both the old and the new Enteroccoci assessment
+                                                                        method statistics are presented in the station visualization section.'),
+                                                               EnteroPlotlySingleStationUI('Entero')),
                                                       tabPanel("Chlorophyll a",
                                                                helpText('Review each site using the single site visualization section. Chlorophyll a standards only apply to some stations.'),
                                                                chlAPlotlySingleStationUI('chlA')),
