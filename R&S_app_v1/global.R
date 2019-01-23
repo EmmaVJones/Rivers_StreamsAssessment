@@ -17,7 +17,8 @@ library(magrittr)
 source('appModules/multipleDependentSelectizeArguments.R')
 source('newBacteriaStandard_working.R')
 
-modulesToReadIn <- c('temperature','pH','DO','SpCond','Salinity','TN','Ecoli','chlA','Enteroccoci', 'TP','sulfate', 'Ammonia')
+modulesToReadIn <- c('temperature','pH','DO','SpCond','Salinity','TN','Ecoli','chlA','Enteroccoci', 'TP','sulfate',
+                     'Ammonia', 'Chloride', 'Nitrate')
 for (i in 1:length(modulesToReadIn)){
   source(paste('appModules/',modulesToReadIn[i],'Module.R',sep=''))
 }
@@ -257,6 +258,51 @@ acuteNH3exceedance <- function(x){
     return(quickStats(ammonia, 'AcuteAmmonia'))
   }
 }
+
+
+#### Chloride PWS Assessment Functions ---------------------------------------------------------------------------------------------------
+
+
+chloridePWS <- function(x){
+  if(grepl('PWS', unique(x$SPSTDS))){
+    chloride <- dplyr::select(x, FDT_DATE_TIME, FDT_DEPTH, CHLORIDE) %>%
+      filter(!is.na(CHLORIDE)) %>% #get rid of NA's
+      mutate(limit = 250) %>%
+      rename(parameter = !!names(.[3])) %>% # rename columns to make functions easier to apply
+      mutate(exceeds = ifelse(parameter > limit, T, F)) # Identify where above NH3 WQS limit
+    return(quickStats(chloride, 'PWS_Acute_Chloride'))  }  
+}
+
+
+#### Nitrate PWS Assessment Functions ---------------------------------------------------------------------------------------------------
+
+nitratePWS <- function(x){
+  if(grepl('PWS', unique(x$SPSTDS))){
+    nitrate <- dplyr::select(x, FDT_DATE_TIME, FDT_DEPTH, NITRATE) %>%
+      filter(!is.na(NITRATE)) %>% #get rid of NA's
+      mutate(limit = 10) %>%
+      rename(parameter = !!names(.[3])) %>% # rename columns to make functions easier to apply
+      mutate(exceeds = ifelse(parameter > limit, T, F)) # Identify where above NH3 WQS limit
+    return(quickStats(nitrate, 'PWS_Acute_Nitrate'))  }  
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 quickStats <- function(parameterDataset, parameter){

@@ -1,28 +1,3 @@
-source('testingDataset.R')
-monStationTemplate <- read_excel('data/tbl_ir_mon_stations_template.xlsx') # from X:\2018_Assessment\StationsDatabase\VRO
-
-# Single station data ----------------------------------------------------------------------
-conventionals_HUC<- left_join(conventionals, dplyr::select(stationTable, FDT_STA_ID, SEC, CLASS, SPSTDS, ID305B_1, ID305B_2, ID305B_3), by='FDT_STA_ID')
-
-AUData <- filter(conventionals_HUC, ID305B_1 %in% 'VAW-I04R_JKS03A00' | 
-                   ID305B_2 %in% 'VAW-I04R_JKS03A00' | 
-                   ID305B_2 %in% 'VAW-I04R_JKS03A00')%>% 
-  left_join(WQSvalues, by = 'CLASS')
-
-x <-filter(conventionals_HUC, FDT_STA_ID %in% '2-JKS030.65') #'2-JMS279.41')#
-
-chloridePWS <- function(x){
-  if(grepl('PWS', unique(x$SPSTDS))){
-    chloride <- dplyr::select(x, FDT_DATE_TIME, FDT_DEPTH, CHLORIDE) %>%
-      filter(!is.na(CHLORIDE)) %>% #get rid of NA's
-      mutate(limit = 250) %>%
-      rename(parameter = !!names(.[3])) %>% # rename columns to make functions easier to apply
-      mutate(exceeds = ifelse(parameter > limit, T, F)) # Identify where above NH3 WQS limit
-    return(quickStats(chloride, 'PWS_Chloride'))  }  
-}
-
-#chloridePWS(x)
-
 ClPlotlySingleStationUI <- function(id){
   ns <- NS(id)
   tagList(
@@ -34,10 +9,10 @@ ClPlotlySingleStationUI <- function(id){
         column(8, h5('All chloride records that are above the PWS criteria (where applicable) for the ',span(strong('selected site')),' are highlighted below.'),
                div(style = 'height:150px;overflow-y: scroll', tableOutput(ns('ChlorideRangeTableSingleSite')))),
         column(4, h5('Individual chloride exceedance statistics for the ',span(strong('selected site')),' are highlighted below.
-                      If no data is presented, then the PWS criteria is not applicable to the station.'),
+                     If no data is presented, then the PWS criteria is not applicable to the station.'),
                tableOutput(ns("stationChlorideExceedanceRate"))))
       )
-  )
+      )
 }
 
 
@@ -119,44 +94,19 @@ ClPlotlySingleStation <- function(input,output,session, AUdata, stationSelectedA
     req(Cl_oneStation())
     if(grepl('PWS', unique(Cl_oneStation()$SPSTDS))){
       return(dplyr::select(x, FDT_DATE_TIME, FDT_DEPTH, CHLORIDE) %>%
-        filter(!is.na(CHLORIDE)) %>% #get rid of NA's
-        mutate(PWSlimit = 250) %>%
-        mutate(exceeds = ifelse(CHLORIDE > PWSlimit, T, F)) %>% # Identify where above PWS limit
-        filter(exceeds == TRUE))  
+               filter(!is.na(CHLORIDE)) %>% #get rid of NA's
+               mutate(PWSlimit = 250) %>%
+               mutate(exceeds = ifelse(CHLORIDE > PWSlimit, T, F)) %>% # Identify where above PWS limit
+               filter(exceeds == TRUE))  
     }else {
-        return('Station not designated PWS')
-      }  })
+      return('Station not designated PWS')
+    }  })
   
   output$stationChlorideExceedanceRate <- renderTable({
     req(input$Chloride_oneStationSelection, Cl_oneStation())
     chloridePWS(Cl_oneStation()) %>%
       dplyr::select(1:3) %>%# don't give assessment determination for single station
-      dplyr::rename(nSamples = PWS_Chloride_SAMP,nExceedance= PWS_Chloride_VIO,exceedanceRate= PWS_Chloride_exceedanceRate)}) # make it match everything else
+      dplyr::rename(nSamples = PWS_Chloride_Acute_SAMP,nExceedance= PWS_Chloride_Acute_VIO,exceedanceRate= PWS_Chloride_Acute_exceedanceRate)}) # make it match everything else
   
   
 }
-
-
-
-
-ui <- fluidPage(
-  helpText('Review each site using the single site visualization section. There are no WQS for Specific Conductivity.'),
-  ClPlotlySingleStationUI('Cl')
-)
-
-server <- function(input,output,session){
-  stationData <- eventReactive( input$stationSelection, {
-    filter(AUData, FDT_STA_ID %in% input$stationSelection) })
-  stationSelected <- reactive({input$stationSelection})
-  
-  AUData <- reactive({filter(conventionals_HUC, ID305B_1 %in% 'VAW-I04R_JKS03A00' | 
-                               ID305B_2 %in% 'VAW-I04R_JKS03A00' | 
-                               ID305B_2 %in% 'VAW-I04R_JKS03A00')%>% 
-      left_join(WQSvalues, by = 'CLASS')})
-  
-  callModule(ClPlotlySingleStation,'Cl', AUData, stationSelected)
-  
-}
-
-shinyApp(ui,server)
-

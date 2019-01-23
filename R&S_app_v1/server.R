@@ -171,8 +171,7 @@ shinyServer(function(input, output, session) {
   observe(siteData$StationTableResults <- cbind(tempExceedances(stationData()), DOExceedances_Min(stationData()), 
                                                 pHExceedances(stationData()),
                                                 bacteriaExceedances_OLD(bacteria_Assessment_OLD(stationData(), 'E.COLI', 126, 235),'E.COLI'),
-                                                bacteriaExceedances_OLD(bacteria_Assessment_OLD(stationData(), 'ENTEROCOCCI', 35, 104),'ENTEROCOCCI'),
-                                                acuteNH3exceedance(stationData()))%>%
+                                                bacteriaExceedances_OLD(bacteria_Assessment_OLD(stationData(), 'ENTEROCOCCI', 35, 104),'ENTEROCOCCI'))%>%
             select(-ends_with('exceedanceRate')))
   
   output$stationTableDataSummary <- DT::renderDataTable({
@@ -186,12 +185,26 @@ shinyServer(function(input, output, session) {
                                                     list(extend='csv',filename=paste('AssessmentResults_',paste(assessmentCycle,input$stationSelection, collapse = "_"),Sys.Date(),sep='')),
                                                     list(extend='excel',filename=paste('AssessmentResults_',paste(assessmentCycle,input$stationSelection, collapse = "_"),Sys.Date(),sep=''))))) %>% 
       # format cell background color based on hidden column
-      # format cell background color based on hidden column
       formatStyle(c('TEMP_SAMP','TEMP_VIO','TEMP_STAT'), 'TEMP_STAT', backgroundColor = styleEqual(c('Review'), c('red'))) %>%
       formatStyle(c('DO_SAMP','DO_VIO','DO_STAT'), 'DO_STAT', backgroundColor = styleEqual(c('Review'), c('red'))) %>%
       formatStyle(c('PH_SAMP','PH_VIO','PH_STAT'), 'PH_STAT', backgroundColor = styleEqual(c('Review'), c('red'))) %>%
       formatStyle(c('E.COLI_SAMP','E.COLI_VIO','E.COLI_STAT'), 'E.COLI_STAT', backgroundColor = styleEqual(c('Review'), c('red'))) %>%
-      formatStyle(c('ENTEROCOCCI_SAMP','ENTEROCOCCI_VIO','ENTEROCOCCI_STAT'), 'ENTEROCOCCI_STAT', backgroundColor = styleEqual(c('Review'), c('red'))) %>%
+      formatStyle(c('ENTEROCOCCI_SAMP','ENTEROCOCCI_VIO','ENTEROCOCCI_STAT'), 'ENTEROCOCCI_STAT', backgroundColor = styleEqual(c('Review'), c('red'))) 
+
+  })
+  
+  output$stationTableDataSummary2 <- DT::renderDataTable({
+    req(stationData())
+    z <- cbind(data.frame(StationID = unique(stationData()$FDT_STA_ID)), acuteNH3exceedance(stationData())) %>%
+      select(-ends_with('exceedanceRate'))
+    datatable(z, extensions = 'Buttons', escape=F, rownames = F, editable = TRUE,
+              options= list(scrollX = TRUE, pageLength = nrow(z),
+                            # hide certain columns
+                            columnDefs = list(list(targets = 6, visible = FALSE)),
+                            dom='Bt', buttons=list('copy',
+                                                   list(extend='csv',filename=paste('AssessmentResults_',paste(assessmentCycle,input$stationSelection, collapse = "_"),Sys.Date(),sep='')),
+                                                   list(extend='excel',filename=paste('AssessmentResults_',paste(assessmentCycle,input$stationSelection, collapse = "_"),Sys.Date(),sep=''))))) %>% 
+      # format cell background color based on hidden column
       formatStyle(c('AcuteAmmonia_SAMP','AcuteAmmonia_VIO','AcuteAmmonia_STAT'), 'AcuteAmmonia_STAT', backgroundColor = styleEqual(c('Review'), c('red')))
     
   })
@@ -260,5 +273,11 @@ shinyServer(function(input, output, session) {
   
   ## Ammonia Sub Tab ##------------------------------------------------------------------------------------------------------
   callModule(AmmoniaPlotlySingleStation,'Ammonia', AUData, stationSelected)
+  
+  ## Chloride Sub Tab ##------------------------------------------------------------------------------------------------------
+  callModule(ClPlotlySingleStation,'Cl', AUData, stationSelected)
+  
+  ## Nitrate Sub Tab ##------------------------------------------------------------------------------------------------------
+  callModule(NitratePlotlySingleStation,'Nitrate', AUData, stationSelected)
 })
 

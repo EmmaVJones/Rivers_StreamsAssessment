@@ -57,19 +57,19 @@ DSulfatePlotlySingleStation <- function(input,output,session, AUdata, stationSel
                yaxis=list(title="Dissolved Sulfate (mg/L)"),
                xaxis=list(title="Sample Date",tickfont = list(size = 10)))
     }else{
-      dat <- mutate(DSulfate_oneStation(), top = 250000)
+      dat <- mutate(DSulfate_oneStation(), top = 250)
       dat$SampleDate <- as.POSIXct(dat$FDT_DATE_TIME2, format="%m/%d/%y")
       
       plot_ly(data=dat)%>%
         add_lines(data=dat, x=~SampleDate,y=~top, mode='line', line = list(color = 'black'),
-                  hoverinfo = "none", name="Sulfate PWS Criteria (250,000 ug/L)") %>%
-        add_markers(data=dat, x= ~SampleDate, y= ~SULFATE_TOTAL,mode = 'scatter', name="Total Sulfate (ug/L)", marker = list(color= '#535559'),
+                  hoverinfo = "none", name="Sulfate PWS Criteria (250 mg/L)") %>%
+        add_markers(data=dat, x= ~SampleDate, y= ~SULFATE_TOTAL,mode = 'scatter', name="Total Sulfate (mg/L)", marker = list(color= '#535559'),
                     hoverinfo="text",text=~paste(sep="<br>",
                                                  paste("Date: ",SampleDate),
                                                  paste("Depth: ",FDT_DEPTH, "m"),
-                                                 paste("Total Sulfate: ",SULFATE_TOTAL," (ug/L)")))%>%
+                                                 paste("Total Sulfate: ",SULFATE_TOTAL," (mg/L)")))%>%
         layout(showlegend=FALSE,
-               yaxis=list(title="Total Sulfate (ug/L)"),
+               yaxis=list(title="Total Sulfate (mg/L)"),
                xaxis=list(title="Sample Date",tickfont = list(size = 10)))
     }
     
