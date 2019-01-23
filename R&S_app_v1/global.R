@@ -17,7 +17,7 @@ library(magrittr)
 source('appModules/multipleDependentSelectizeArguments.R')
 source('newBacteriaStandard_working.R')
 
-modulesToReadIn <- c('temperature','pH','DO','SpCond','Salinity','TN','Ecoli','chlA','Enteroccoci', 'TP','sulfate')
+modulesToReadIn <- c('temperature','pH','DO','SpCond','Salinity','TN','Ecoli','chlA','Enteroccoci', 'TP','sulfate', 'Ammonia')
 for (i in 1:length(modulesToReadIn)){
   source(paste('appModules/',modulesToReadIn[i],'Module.R',sep=''))
 }
@@ -205,7 +205,7 @@ bacteria_Assessment_OLD <- function(x, bacteriaType, geomeanLimit, STVlimit){
       select(sampleMonthYear, geoMeanCalendarMonth, limit, exceeds, samplesPerMonth)
     geomeanResults <- quickStats(bacteriaGeomean, bacteriaType) %>%
       mutate(`Assessment Method` = 'Old Monthly Geomean')
-    geomeanResults[,4] <- recode(geomeanResults[,4], 'Review' = paste('Review if ', bacteriaType,'_VIO > 1',sep=''))
+    geomeanResults[,4] <- ifelse(is.na(geomeanResults[,4]),NA, dplyr::recode(geomeanResults[,4], 'Review' = paste('Review if ', bacteriaType,'_VIO > 1',sep='')))
     
     # Single Sample Maximum Analysis
     bacteriaSSM <- bacteria_ExceedancesSTV_OLD(bacteria, STVlimit) 
@@ -225,27 +225,63 @@ conventionalsToBacteria <- function(x, bacteriaType){
 }
 
 
+#### Ammonia Assessment Functions ---------------------------------------------------------------------------------------------------
 
+# Calculate limits and return dataframe with original data and limits
+acuteNH3limit <- function(x){
+  # Trout absent scenario, freshwater
+  if(unique(x$CLASS) %in% c("III","IV")){
+    return(dplyr::select(x, FDT_DATE_TIME, FDT_DEPTH, FDT_FIELD_PH, AMMONIA) %>%
+             mutate(NH3limit = (0.411/(1+10^(7.204-FDT_FIELD_PH)))+(58.4/(1+10^(FDT_FIELD_PH-7.204)))))  }
+  # Trout present scenario, freshwater
+  if(unique(x$CLASS) %in% c("V","VI")){
+    return(dplyr::select(x, FDT_DATE_TIME, FDT_DEPTH, FDT_FIELD_PH, AMMONIA) %>%
+             mutate(NH3limit = (0.275/(1+10^(7.204-FDT_FIELD_PH)))+(39/(1+10^(FDT_FIELD_PH-7.204)))))  }
+}
 
+# Return one line summarizing samples and violation rate
+acuteNH3exceedance <- function(x){
+  # Trout absent scenario, freshwater
+  if(unique(x$CLASS) %in% c("III","IV")){
+    ammonia <- acuteNH3limit(x) %>%
+      filter(!is.na(NH3limit)) %>% #get rid of NA's
+      rename(parameter = !!names(.[4]), limit = !!names(.[5])) %>% # rename columns to make functions easier to apply
+      mutate(exceeds = ifelse(parameter > limit, T, F)) # Identify where above NH3 WQS limit
+    return(quickStats(ammonia, 'AcuteAmmonia'))  }
+  # Trout present scenario, freshwater
+  if(unique(x$CLASS) %in% c("V","VI")){
+    ammonia <- acuteNH3limit(x) %>%
+      filter(!is.na(NH3limit)) %>% #get rid of NA's
+      rename(parameter = !!names(.[4]), limit = !!names(.[5])) %>% # rename columns to make functions easier to apply
+      mutate(exceeds = ifelse(parameter > limit, T, F)) # Identify where above NH3 WQS limit
+    return(quickStats(ammonia, 'AcuteAmmonia'))
+  }
+}
 
 
 quickStats <- function(parameterDataset, parameter){
-  results <- data.frame(SAMP = nrow(parameterDataset),
-                        VIO = nrow(filter(parameterDataset, exceeds == TRUE))) %>%
-    mutate(exceedanceRate = (VIO/SAMP)*100)
-  
-  if(results$exceedanceRate > 10.5 & results$SAMP > 10){outcome <- 'Review'}
-  if(results$exceedanceRate < 10.5 & results$SAMP > 10){outcome <- 'S'}
-  if(results$VIO >= 2 & results$SAMP < 10){outcome <- 'Review'}
-  if(results$VIO < 2 & results$SAMP < 10){outcome <- 'Review'}
-  
-  results <- mutate(results, STAT = outcome)
-  names(results) <- c(paste(parameter,names(results)[1], sep = '_'),
-                      paste(parameter,names(results)[2], sep = '_'),
-                      paste(parameter,names(results)[3], sep = '_'),
-                      paste(parameter,names(results)[4], sep = '_'))
-  #rename based on parameter entered
-  return(results)
+  if(nrow(parameterDataset) > 0 ){
+    results <- data.frame(SAMP = nrow(parameterDataset),
+                          VIO = nrow(filter(parameterDataset, exceeds == TRUE))) %>%
+      mutate(exceedanceRate = (VIO/SAMP)*100)
+    
+    if(results$exceedanceRate > 10.5 & results$SAMP > 10){outcome <- 'Review'}
+    if(results$exceedanceRate < 10.5 & results$SAMP > 10){outcome <- 'S'}
+    if(results$VIO >= 2 & results$SAMP < 10){outcome <- 'Review'}
+    if(results$VIO < 2 & results$SAMP < 10){outcome <- 'Review'}
+    
+    results <- mutate(results, STAT = outcome)
+    names(results) <- c(paste(parameter,names(results)[1], sep = '_'),
+                        paste(parameter,names(results)[2], sep = '_'),
+                        paste(parameter,names(results)[3], sep = '_'),
+                        paste(parameter,names(results)[4], sep = '_'))
+    #rename based on parameter entered
+    return(results)
+  } else {
+    z <- data.frame(SAMP=NA, VIO = NA, exceedanceRate= NA, STAT=NA)
+    names(z) <- paste(parameter,names(z), sep='_')
+    return(z)
+  }
 }
 
 #Max Temperature Exceedance Function
@@ -265,9 +301,7 @@ pHExceedances <- function(x){
     rowwise() %>% mutate(interval=findInterval(FDT_FIELD_PH,c(`pH Min`,`pH Max`)))%>% # Identify where pH outside of assessment range
     ungroup()%>%
     mutate(exceeds=ifelse(interval == 1, F, T)) # Highlight where pH doesn't fall into assessment range
-  if(nrow(pH>0)){
-    quickStats(pH, 'PH')
-  }
+  quickStats(pH, 'PH')
 }
 #pHExceedances(x)
 
@@ -286,9 +320,9 @@ bacteriaExceedances_OLD <- function(results, bacteriaType){
   # If no results to report, give nothing
   if(length(results)>0){
     # if geomean applied, use those results
-    if(grepl('Review',results[1,4])){
+    if(grepl('Review',results[1,4]) | is.na(results[1,4])){
       return(results[2,1:4])}
-    else{return(results[1,2:4])}
+    else{return(results[1,1:4])}
   }else{
     z <- data.frame(SAMP=NA, VIO = NA, exceedanceRate= NA, STAT=NA)
     names(z) <- paste(bacteriaType,names(z), sep='_')

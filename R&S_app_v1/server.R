@@ -171,7 +171,8 @@ shinyServer(function(input, output, session) {
   observe(siteData$StationTableResults <- cbind(tempExceedances(stationData()), DOExceedances_Min(stationData()), 
                                                 pHExceedances(stationData()),
                                                 bacteriaExceedances_OLD(bacteria_Assessment_OLD(stationData(), 'E.COLI', 126, 235),'E.COLI'),
-                                                bacteriaExceedances_OLD(bacteria_Assessment_OLD(stationData(), 'ENTEROCOCCI', 35, 104),'ENTEROCOCCI'))%>%
+                                                bacteriaExceedances_OLD(bacteria_Assessment_OLD(stationData(), 'ENTEROCOCCI', 35, 104),'ENTEROCOCCI'),
+                                                acuteNH3exceedance(stationData()))%>%
             select(-ends_with('exceedanceRate')))
   
   output$stationTableDataSummary <- DT::renderDataTable({
@@ -190,7 +191,8 @@ shinyServer(function(input, output, session) {
       formatStyle(c('DO_SAMP','DO_VIO','DO_STAT'), 'DO_STAT', backgroundColor = styleEqual(c('Review'), c('red'))) %>%
       formatStyle(c('PH_SAMP','PH_VIO','PH_STAT'), 'PH_STAT', backgroundColor = styleEqual(c('Review'), c('red'))) %>%
       formatStyle(c('E.COLI_SAMP','E.COLI_VIO','E.COLI_STAT'), 'E.COLI_STAT', backgroundColor = styleEqual(c('Review'), c('red'))) %>%
-      formatStyle(c('ENTEROCOCCI_SAMP','ENTEROCOCCI_VIO','ENTEROCOCCI_STAT'), 'ENTEROCOCCI_STAT', backgroundColor = styleEqual(c('Review'), c('red')))
+      formatStyle(c('ENTEROCOCCI_SAMP','ENTEROCOCCI_VIO','ENTEROCOCCI_STAT'), 'ENTEROCOCCI_STAT', backgroundColor = styleEqual(c('Review'), c('red'))) %>%
+      formatStyle(c('AcuteAmmonia_SAMP','AcuteAmmonia_VIO','AcuteAmmonia_STAT'), 'AcuteAmmonia_STAT', backgroundColor = styleEqual(c('Review'), c('red')))
     
   })
   
@@ -256,5 +258,7 @@ shinyServer(function(input, output, session) {
   ## Sulfate Sub Tab ##------------------------------------------------------------------------------------------------------
   callModule(DSulfatePlotlySingleStation,'DSulfate', AUData, stationSelected)
   
+  ## Ammonia Sub Tab ##------------------------------------------------------------------------------------------------------
+  callModule(AmmoniaPlotlySingleStation,'Ammonia', AUData, stationSelected)
 })
 
