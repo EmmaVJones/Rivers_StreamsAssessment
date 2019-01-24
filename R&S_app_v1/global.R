@@ -314,7 +314,7 @@ quickStats <- function(parameterDataset, parameter){
     if(results$exceedanceRate > 10.5 & results$SAMP > 10){outcome <- 'Review'}
     if(results$exceedanceRate < 10.5 & results$SAMP > 10){outcome <- 'S'}
     if(results$VIO >= 2 & results$SAMP < 10){outcome <- 'Review'}
-    if(results$VIO < 2 & results$SAMP < 10){outcome <- 'Review'}
+    if(results$VIO < 2 & results$SAMP < 10){outcome <- 'IN'}
     
     results <- mutate(results, STAT = outcome)
     names(results) <- c(paste(parameter,names(results)[1], sep = '_'),

@@ -159,6 +159,7 @@ BRRO_Sites_AU_WQS <- BRRO_Sites_AU %>%
   right_join(sites, by = 'FDT_STA_ID') %>%
   st_set_geometry(NULL)
 
+saveRDS(tooMany, 'data/tooManyWQSJames.RDS')
 write.csv(BRRO_Sites_AU_WQS, 'data/BRRO_Sites_AU_WQS.csv', row.names=FALSE)
 ```
 
