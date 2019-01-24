@@ -18,7 +18,7 @@ source('appModules/multipleDependentSelectizeArguments.R')
 source('newBacteriaStandard_working.R')
 
 modulesToReadIn <- c('temperature','pH','DO','SpCond','Salinity','TN','Ecoli','chlA','Enteroccoci', 'TP','sulfate',
-                     'Ammonia', 'Chloride', 'Nitrate')
+                     'Ammonia', 'Chloride', 'Nitrate','metals')
 for (i in 1:length(modulesToReadIn)){
   source(paste('appModules/',modulesToReadIn[i],'Module.R',sep=''))
 }
@@ -307,8 +307,8 @@ nitratePWS <- function(x){
 
 quickStats <- function(parameterDataset, parameter){
   if(nrow(parameterDataset) > 0 ){
-    results <- data.frame(SAMP = nrow(parameterDataset),
-                          VIO = nrow(filter(parameterDataset, exceeds == TRUE))) %>%
+    results <- data.frame(VIO = nrow(filter(parameterDataset, exceeds == TRUE)),
+                          SAMP = nrow(parameterDataset)) %>%
       mutate(exceedanceRate = (VIO/SAMP)*100)
     
     if(results$exceedanceRate > 10.5 & results$SAMP > 10){outcome <- 'Review'}
@@ -324,7 +324,7 @@ quickStats <- function(parameterDataset, parameter){
     #rename based on parameter entered
     return(results)
   } else {
-    z <- data.frame(SAMP=NA, VIO = NA, exceedanceRate= NA, STAT=NA)
+    z <- data.frame(VIO = NA, SAMP=NA, exceedanceRate= NA, STAT=NA)
     names(z) <- paste(parameter,names(z), sep='_')
     return(z)
   }

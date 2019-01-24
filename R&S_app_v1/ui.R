@@ -173,7 +173,9 @@ shinyUI(fluidPage(theme="yeti.css",
                                                                DSulfatePlotlySingleStationUI('DSulfate'))
                                                       )),
                                            tabPanel('EDAS Data', br(), br(), br(), h4('Placeholder'),br(), br(), br()),
-                                           tabPanel('Metals Data', br(), br(), br(), h4('Placeholder'),br(), br(), br()),
+                                           tabPanel('Metals Data', 
+                                                    helpText('Review each site using the single site visualization section.'),
+                                                    metalsTableSingleStationUI('metals')),
                                            tabPanel('Fish Tissue Data', br(), br(), br(), h4('Placeholder'),br(), br(), br()),
                                            tabPanel('Toxics Data', br(), br(), br(), h4('Placeholder'),br(), br(), br())
                                          )
