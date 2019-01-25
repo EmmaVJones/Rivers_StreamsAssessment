@@ -28,13 +28,17 @@ s <- filter(Smetals, FDT_STA_ID %in% x2$FDT_STA_ID)
 
 
 
-metalsExceedances <- function(x){
-  if(any(z=='NSP')){
-    return()
-  }
-    return()
+metalsExceedances <- function(x, metalType){
+  # if any data given to function
+  if(nrow(x) > 0){ VIO <- length(which(x == 'NSP')) 
+  }else {
+    VIO <- NA  }
+  
+  x <- data.frame(VIO = VIO, STAT = ifelse(VIO > 0, 'Review', 'S'))
+  names(x) <- paste(metalType,names(x), sep='_')
+  return(x)
 }
-
+metalsExceedances(z, 'WAT_MET')
 
 
 metalsTableSingleStationUI <- function(id){

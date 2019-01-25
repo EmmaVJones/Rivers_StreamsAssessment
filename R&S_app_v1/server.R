@@ -2,16 +2,16 @@
 source('global.R')
 source('AUshapefileLocation.R')
 
-assessmentLayer <- st_read('GIS/AssessmentRegions_VA84_basins.shp') %>%
-  st_transform( st_crs(4326)) 
-stationTable <- read_csv('data/BRRO_Sites_AU_WQS.csv')
-stationTable <- readRDS('data/BRROsites_ROA_sf.RDS')
-conventionals <- suppressWarnings(read_csv('data/CONVENTIONALS_20171010.csv'))
-conventionals$FDT_DATE_TIME2 <- as.POSIXct(conventionals$FDT_DATE_TIME, format="%m/%d/%Y %H:%M")
-#commentList <- readRDS('Comments/commentList.RDS')
-monStationTemplate <- read_excel('data/tbl_ir_mon_stations_template.xlsx') # from X:\2018_Assessment\StationsDatabase\VRO
-WCmetals <- read_excel('data/WATER_METALS_20170712.xlsx')
-Smetals <- read_excel('data/SEDIMENT_20170712.xlsx')
+#assessmentLayer <- st_read('GIS/AssessmentRegions_VA84_basins.shp') %>%
+#  st_transform( st_crs(4326)) 
+#stationTable <- read_csv('data/BRRO_Sites_AU_WQS.csv')
+#stationTable <- readRDS('data/BRROsites_ROA_sf.RDS')
+#conventionals <- suppressWarnings(read_csv('data/CONVENTIONALS_20171010.csv'))
+#conventionals$FDT_DATE_TIME2 <- as.POSIXct(conventionals$FDT_DATE_TIME, format="%m/%d/%Y %H:%M")
+##commentList <- readRDS('Comments/commentList.RDS')
+#monStationTemplate <- read_excel('data/tbl_ir_mon_stations_template.xlsx') # from X:\2018_Assessment\StationsDatabase\VRO
+#WCmetals <- read_excel('data/WATER_METALS_20170712.xlsx')
+#Smetals <- read_excel('data/SEDIMENT_20170712.xlsx')
 
 mapviewOptions(basemaps = c( "OpenStreetMap",'Esri.WorldImagery'),
                vector.palette = colorRampPalette(brewer.pal(8, "Set1")),
@@ -173,7 +173,17 @@ shinyServer(function(input, output, session) {
   observe(siteData$StationTableResults <- cbind(tempExceedances(stationData()), DOExceedances_Min(stationData()), 
                                                 pHExceedances(stationData()),
                                                 bacteriaExceedances_OLD(bacteria_Assessment_OLD(stationData(), 'E.COLI', 126, 235),'E.COLI'),
-                                                bacteriaExceedances_OLD(bacteria_Assessment_OLD(stationData(), 'ENTEROCOCCI', 35, 104),'ENTEROCOCCI'))%>%
+                                                bacteriaExceedances_OLD(bacteria_Assessment_OLD(stationData(), 'ENTEROCOCCI', 35, 104),'ENTEROCOCCI'),
+                                                metalsExceedances(filter(WCmetals, FDT_STA_ID %in% stationData()$FDT_STA_ID) %>% 
+                                                                    dplyr::select(`ANTIMONY HUMAN HEALTH PWS`:`ZINC ALL OTHER SURFACE WATERS`), 'WAT_MET'),
+                                                # Placeholder for water toxics
+                                                metalsExceedances(filter(Smetals, FDT_STA_ID %in% stationData()$FDT_STA_ID) %>% 
+                                                                    dplyr::select(`ACENAPHTHENE`:ZINC), 'SED_MET')
+                                                # Placeholder for sediment toxics
+                                                # Placeholder for fish metals
+                                                # Placeholder for fish toxics
+                                                # Placeholder for Benthic status
+                                                )%>%
             select(-ends_with('exceedanceRate')))
   
   output$stationTableDataSummary <- DT::renderDataTable({
@@ -191,7 +201,9 @@ shinyServer(function(input, output, session) {
       formatStyle(c('DO_SAMP','DO_VIO','DO_STAT'), 'DO_STAT', backgroundColor = styleEqual(c('Review'), c('red'))) %>%
       formatStyle(c('PH_SAMP','PH_VIO','PH_STAT'), 'PH_STAT', backgroundColor = styleEqual(c('Review'), c('red'))) %>%
       formatStyle(c('E.COLI_SAMP','E.COLI_VIO','E.COLI_STAT'), 'E.COLI_STAT', backgroundColor = styleEqual(c('Review'), c('red'))) %>%
-      formatStyle(c('ENTEROCOCCI_SAMP','ENTEROCOCCI_VIO','ENTEROCOCCI_STAT'), 'ENTEROCOCCI_STAT', backgroundColor = styleEqual(c('Review'), c('red'))) 
+      formatStyle(c('ENTEROCOCCI_SAMP','ENTEROCOCCI_VIO','ENTEROCOCCI_STAT'), 'ENTEROCOCCI_STAT', backgroundColor = styleEqual(c('Review'), c('red'))) %>%
+      formatStyle(c('WAT_MET_VIO','WAT_MET_STAT'), 'WAT_MET_STAT', backgroundColor = styleEqual(c('Review'), c('red'))) %>%
+      formatStyle(c('SED_MET_VIO','SED_MET_STAT'), 'SED_MET_STAT', backgroundColor = styleEqual(c('Review'), c('red')))
 
   })
   

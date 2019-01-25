@@ -381,3 +381,14 @@ bacteriaExceedances_OLD <- function(results, bacteriaType){
 #bacteriaExceedances_OLD( bacteria_Assessment_OLD(filter(conventionals, FDT_STA_ID %in% '2-DCK003.94'), 'ENTEROCOCCI', 35, 104))
 #bacteriaExceedances_OLD( bacteria_Assessment_OLD(filter(conventionals, FDT_STA_ID %in% '1AABR000.78'), 'ENTEROCOCCI', 35, 104),'ENTEROCOCCI')
 
+
+metalsExceedances <- function(x, metalType){
+  # if any data given to function
+  if(nrow(x) > 0){ VIO <- length(which(x == 'NSP')) 
+  }else {
+    VIO <- NA  }
+  
+  x <- data.frame(VIO = VIO, STAT = ifelse(VIO > 0, 'Review', 'S'))
+  names(x) <- paste(metalType,names(x), sep='_')
+  return(x)
+}
