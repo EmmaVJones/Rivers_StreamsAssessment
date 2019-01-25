@@ -2,16 +2,16 @@
 source('global.R')
 source('AUshapefileLocation.R')
 
-#assessmentLayer <- st_read('GIS/AssessmentRegions_VA84_basins.shp') %>%
-#  st_transform( st_crs(4326)) 
-#stationTable <- read_csv('data/BRRO_Sites_AU_WQS.csv')
-#stationTable <- readRDS('data/BRROsites_ROA_sf.RDS')
-#conventionals <- suppressWarnings(read_csv('data/CONVENTIONALS_20171010.csv'))
-#conventionals$FDT_DATE_TIME2 <- as.POSIXct(conventionals$FDT_DATE_TIME, format="%m/%d/%Y %H:%M")
-##commentList <- readRDS('Comments/commentList.RDS')
-#monStationTemplate <- read_excel('data/tbl_ir_mon_stations_template.xlsx') # from X:\2018_Assessment\StationsDatabase\VRO
-#WCmetals <- read_excel('data/WATER_METALS_20170712.xlsx')
-#Smetals <- read_excel('data/SEDIMENT_20170712.xlsx')
+assessmentLayer <- st_read('GIS/AssessmentRegions_VA84_basins.shp') %>%
+  st_transform( st_crs(4326)) 
+stationTable <- read_csv('data/BRRO_Sites_AU_WQS.csv')
+stationTable <- readRDS('data/BRROsites_ROA_sf.RDS')
+conventionals <- suppressWarnings(read_csv('data/CONVENTIONALS_20171010.csv'))
+conventionals$FDT_DATE_TIME2 <- as.POSIXct(conventionals$FDT_DATE_TIME, format="%m/%d/%Y %H:%M")
+#commentList <- readRDS('Comments/commentList.RDS')
+monStationTemplate <- read_excel('data/tbl_ir_mon_stations_template.xlsx') # from X:\2018_Assessment\StationsDatabase\VRO
+WCmetals <- read_excel('data/WATER_METALS_20170712.xlsx')
+Smetals <- read_excel('data/SEDIMENT_20170712.xlsx')
 
 mapviewOptions(basemaps = c( "OpenStreetMap",'Esri.WorldImagery'),
                vector.palette = colorRampPalette(brewer.pal(8, "Set1")),
@@ -258,29 +258,38 @@ shinyServer(function(input, output, session) {
   ## Total Nitrogen Sub Tab ##------------------------------------------------------------------------------------------------------
   callModule(TNPlotlySingleStation,'TN', AUData, stationSelected)
   
-  ## E.coli Sub Tab ##------------------------------------------------------------------------------------------------------
-  callModule(EcoliPlotlySingleStation,'Ecoli', AUData, stationSelected)
-  
-  ## Chlorophyll a Sub Tab ##------------------------------------------------------------------------------------------------------
-  callModule(chlAPlotlySingleStation,'chlA', AUData, stationSelected)
-  
-  ## Enteroccoci Sub Tab ##------------------------------------------------------------------------------------------------------
-  callModule(EnteroPlotlySingleStation,'Entero', AUData, stationSelected)#input$stationSelection)
+  ## Ammonia Sub Tab ##------------------------------------------------------------------------------------------------------
+  callModule(AmmoniaPlotlySingleStation,'Ammonia', AUData, stationSelected)
   
   ## Total Phosphorus Sub Tab ##------------------------------------------------------------------------------------------------------
   callModule(TPPlotlySingleStation,'TP', AUData, stationSelected)
   
-  ## Sulfate Sub Tab ##------------------------------------------------------------------------------------------------------
-  callModule(DSulfatePlotlySingleStation,'DSulfate', AUData, stationSelected)
+  ## Fecal Coliform Sub Tab ##------------------------------------------------------------------------------------------------------
+  callModule(fecalPlotlySingleStation,'fecal', AUData, stationSelected)
   
-  ## Ammonia Sub Tab ##------------------------------------------------------------------------------------------------------
-  callModule(AmmoniaPlotlySingleStation,'Ammonia', AUData, stationSelected)
+  ## E.coli Sub Tab ##------------------------------------------------------------------------------------------------------
+  callModule(EcoliPlotlySingleStation,'Ecoli', AUData, stationSelected)
   
-  ## Chloride Sub Tab ##------------------------------------------------------------------------------------------------------
-  callModule(ClPlotlySingleStation,'Cl', AUData, stationSelected)
+  ## Enteroccoci Sub Tab ##------------------------------------------------------------------------------------------------------
+  callModule(EnteroPlotlySingleStation,'Entero', AUData, stationSelected)
+  
+  ## Chlorophyll a Sub Tab ##------------------------------------------------------------------------------------------------------
+  callModule(chlAPlotlySingleStation,'chlA', AUData, stationSelected)
+  
+  ## Suspended Sediments Sub Tab ##------------------------------------------------------------------------------------------------------
+  callModule(SSCPlotlySingleStation,'SSC', AUData, stationSelected)
   
   ## Nitrate Sub Tab ##------------------------------------------------------------------------------------------------------
   callModule(NitratePlotlySingleStation,'Nitrate', AUData, stationSelected)
+  
+  ## Chloride Sub Tab ##------------------------------------------------------------------------------------------------------
+  callModule(ClPlotlySingleStation,'Cl', AUData, stationSelected)
+   
+  ## Sulfate Sub Tab ##------------------------------------------------------------------------------------------------------
+  callModule(DSulfatePlotlySingleStation,'DSulfate', AUData, stationSelected)
+  
+  
+  
   
   
   

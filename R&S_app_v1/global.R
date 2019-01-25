@@ -18,7 +18,7 @@ source('appModules/multipleDependentSelectizeArguments.R')
 source('newBacteriaStandard_working.R')
 
 modulesToReadIn <- c('temperature','pH','DO','SpCond','Salinity','TN','Ecoli','chlA','Enteroccoci', 'TP','sulfate',
-                     'Ammonia', 'Chloride', 'Nitrate','metals')
+                     'Ammonia', 'Chloride', 'Nitrate','metals', 'fecalColiform','SSC')
 for (i in 1:length(modulesToReadIn)){
   source(paste('appModules/',modulesToReadIn[i],'Module.R',sep=''))
 }
@@ -313,8 +313,9 @@ quickStats <- function(parameterDataset, parameter){
     
     if(results$exceedanceRate > 10.5 & results$SAMP > 10){outcome <- 'Review'}
     if(results$exceedanceRate < 10.5 & results$SAMP > 10){outcome <- 'S'}
-    if(results$VIO >= 2 & results$SAMP < 10){outcome <- 'Review'}
-    if(results$VIO < 2 & results$SAMP < 10){outcome <- 'IN'}
+    if(results$VIO >= 1 & results$SAMP < 10){outcome <- 'Review'}
+    if(results$VIO < 1 & results$SAMP < 10){outcome <- 'S'}
+    
     
     results <- mutate(results, STAT = outcome)
     names(results) <- c(paste(parameter,names(results)[1], sep = '_'),
