@@ -4,47 +4,97 @@ monStationTemplate <- read_excel('data/tbl_ir_mon_stations_template.xlsx') # fro
 # Single station data ----------------------------------------------------------------------
 conventionals_HUC<- left_join(conventionals, dplyr::select(stationTable, FDT_STA_ID, SEC, CLASS, SPSTDS, ID305B_1, ID305B_2, ID305B_3), by='FDT_STA_ID')
 
-AUData <- filter(conventionals_HUC, ID305B_1 %in% 'VAW-I04R_JKS01A00' | 
+AUData <- filter(conventionals_HUC, ID305B_1 %in%'VAW-I09R_JKS06A00' | 
                    ID305B_2 %in% 'VAW-I04R_JKS01A00' | 
                    ID305B_2 %in% 'VAW-I04R_JKS01A00')%>% 
   left_join(WQSvalues, by = 'CLASS')
 
-x <-filter(conventionals_HUC, FDT_STA_ID %in% '2-JKS023.61')#'2-JKS033.06') #'2-JMS279.41')#
 #x2 <- filter(conventionals_HUC, FDT_STA_ID %in% '2-JKS028.69')
 
 
-# Bring in Level 3 ecoregion
-library(sf)
-ecoregion <- st_read('data/VA_level3ecoregion.shp')
+# Bring in Level 3 ecoregion attached to unique FDT_STA_ID from conventionals_HUC (see
+#   dataPreprocessing_working.Rmd for how this dataset was made)
 
-# add ecoregion to conventionals info
-conventionals_sf <- st_as_sf(conventionals_HUC, coords = c("Longitude", "Latitude"), 
-                             remove = F, # don't remove these lat/lon cols from df
-                             crs = 4326)  # add projection, needs to be geographic bc entering lat/lng
-
-conventionals_HUC <- bind_cols(conventionals_HUC, )
-st_within(conventionals_sf, ecoregion)
+conventionals_sf <- readRDS('data/conventionals_sf.RDS')
 
 
-bind_cols(conventionals_HUC, )
+x <-filter(conventionals_sf, FDT_STA_ID %in% '2-JKS023.61')#'2-JKS033.06') #'2-JMS279.41')##
 
-bind_cols(
-  centers,
-  singapore[as.numeric(st_within(centers_sf, singapore)),]) %>% 
-  select(lng, lat, inc_crc, subzone_name=SUBZONE_N) %>% 
-  mutate(subzone_name = str_to_title(subzone_name))
 
 
 # Bring in latest EDAS VSCI and (combined) VCPMI queries
 VSCI <- read_excel('data/Family Metrics VSCI Calculation.xlsx')%>%
-  filter(RepNum == 1 & Target_Count == 110)
+  filter(RepNum == 1 & Target_Count == 110 &
+           CollDate >= assessmentPeriod[1] )
 VCPMI <- read_excel('data/Family Metrics - CPMI Combined.xlsx')%>%
-  filter(RepNum == 1 & Target_Count == 110)
+  filter(RepNum == 1 & Target_Count == 110 &
+           CollDate >= assessmentPeriod[1] )
 
 x2 <- filter(VSCI, StationID %in% x$FDT_STA_ID) 
 x3 <- filter(VCPMI, StationID %in% x$FDT_STA_ID)
 
 # Assessment Functions
+benthicResultMetrics <- function(x, VSCI, VCPMI){
+  out <- list()
+  # VCPMI Ecoregion 63 + Chowan
+  if(unique(x$US_L3CODE) %in% 63 & 
+     unique(x$Basin) %in% 'Chowan and Dismal Swamp River Basin'){
+    z <- filter(VCPMI, StationID %in% x$FDT_STA_ID) %>% mutate(SCI = 'VCPMI')}
+  if(unique(x$US_L3CODE) %in% 65  & 
+     !(unique(x$Basin) %in% 'Chowan and Dismal Swamp River Basin' ) ){
+    z <- filter(VCPMI, StationID %in% x$FDT_STA_ID) %>% mutate(SCI = 'VCPMI')}
+  if(unique(x$US_L3CODE) %in% c(45, 64, 66, 67, 69)){
+    z <- filter(VSCI, StationID %in% x$FDT_STA_ID) %>% mutate(SCI = 'VSCI') }
+    
+  if(nrow(z) > 0){
+    z1 <- mutate(z, Year = lubridate::year(CollDate))
+    out$data <- z1
+    spring <- filter(z1, Season %in% 'Spring' )
+    fall <- filter(z1, Season %in% 'Fall' )
+    # output list with all metrics
+    nSamples <- nrow(z1)
+    averageSCI <- format(mean(z1$`Fam SCI`), digits = 3)
+    nSpringSample <- nrow(spring)
+    nFallSample <- nrow(fall)
+    minFamSCI <- format(min(z1$`Fam SCI`), digits = 3)
+    maxFamSCI <- format(max(z1$`Fam SCI`), digits = 3)
+    springAverage <- as.numeric(summarise(spring, springAverage = format(mean(`Fam SCI`), digits = 3)))
+    fallAverage <- as.numeric(summarise(fall, fallAverage = format(mean(`Fam SCI`), digits = 3)))
+    out$roundup <- tibble(StationID = unique(z1$StationID),  
+                          `n Samples`=nSamples, `n Spring Samples`= nSpringSample, `n Fall Samples` = nFallSample,
+                          `Average SCI` =averageSCI, `Spring Average SCI`=springAverage, `Fall Average SCI`= fallAverage,
+                          `Minimum SCI` = minFamSCI, `Maximum SCI`= maxFamSCI)
+    
+    out$yearlyAverage <- z1 %>%
+      group_by(Year) %>%
+      summarise(yearAverage = format(mean(`Fam SCI`), digits = 3)) 
+    
+    
+  } else {
+    out$data <- NA
+    
+    out$roundup <- tibble(StationID = NA,  
+                          `n Samples`=NA, `n Spring Samples`= NA, `n Fall Samples` = NA,
+                          `Average SCI` =NA, `Spring Average SCI`=NA, `Fall Average SCI`= NA,
+                          `Minimum SCI` = NA, `Maximum SCI`= NA)
+    
+    #out$nSamples <- NA
+    #out$averageSCI <- NA
+    #out$nSpringSample <- NA
+    #out$nFallSample <-NA
+    #out$minFamSCI <- NA
+    #out$maxFamSCI <- NA
+    
+    out$yearlyAverage <- tibble(Year= NA, yearAverage=NA)
+    
+    #out$springAverage <- NA
+    #out$fallAverage <- NA
+  }
+    return(out)
+  
+}
+
+#metrics <- benthicResultMetrics(x, VSCI, VCPMI)
 
 
 
@@ -62,12 +112,31 @@ BenthicsPlotlySingleStationUI <- function(id){
     wellPanel(
       h4(strong('Single Station Data Visualization')),
       uiOutput(ns('Benthics_oneStationSelectionUI')),
-      plotlyOutput(ns('Benthicsplotly'))  )
+      #verbatimTextOutput(ns('test')),
+      plotlyOutput(ns('Benthicsplotly')),
+      br(), hr(), br(),
+      h4('Stream Condition Index Sampling Metrics'),
+      fluidRow(
+        column(8, h5('Sampling and SCI metrics in Assessment Window: '), DT::dataTableOutput(ns('SCIroundup'))),
+        column(4, h5('Yearly Average SCI in Assessment Window: '), DT::dataTableOutput(ns('yearlyAvgSCI')))),
+      br(),
+      h4('Raw Benthic Results'),
+      DT::dataTableOutput(ns('rawBenthicsData')))
+        #column(4, h5('Total Number of Samples in Assessment Window: '), textOutput(ns('nSamples')) ,
+        #       h5('Total Number of Spring Samples in Assessment Window: '), textOutput(ns('nSpringSamples')),
+        #       h5('Total Number of Fall Samples in Assessment Window: '), textOutput(ns('nFallSamples')))  ,
+        #column(4, h5('Average SCI in Assessment Window: '), textOutput(ns('avgSCI')) ,
+        #       h5('Minimum SCI in Assessment Window: '), textOutput(ns('minSCI')),
+        #       h5('Maximum SCI in Assessment Window: '), textOutput(ns('maxSCI')))  ,
+        #column(4, h5('Yearly Average SCI in Assessment Window: '), tableOutput(ns('yearlyAvgSCI')) ,
+        #       h5('Spring Average SCI in Assessment Window: '), textOutput(ns('springAvgSCI')),
+        #       h5('Fall SCI in Assessment Window: '), textOutput(ns('fallAvgSCI'))  )),
+      #DT::dataTableOutput(ns('rawBenthicsData')))
   )
 }
 
 
-BenthicsPlotlySingleStation <- function(input,output,session, AUdata){
+BenthicsPlotlySingleStation <- function(input,output,session, AUdata, stationSelectedAbove, conventionals_sf, VSCI, VCPMI){
   ns <- session$ns
   
   # Select One station for individual review
@@ -75,46 +144,72 @@ BenthicsPlotlySingleStation <- function(input,output,session, AUdata){
     req(AUdata)
     selectInput(ns('Benthics_oneStationSelection'),strong('Select Station to Review'),choices=unique(AUdata())$FDT_STA_ID,width='300px')})
   
+  output$Benthics_oneStationSelectionUI <- renderUI({
+    req(#AUdata, 
+      stationSelectedAbove)
+    #print(unique(c(stationSelectedAbove(),AUdata()$FDT_STA_ID)))
+    selectInput(ns('Benthics_oneStationSelection'),strong('Select Station to Review'),choices= sort(unique(c(stationSelectedAbove(),AUdata()$FDT_STA_ID))),#unique(AUdata())$FDT_STA_ID,
+                width='300px', selected = stationSelectedAbove())})# "2-JMS279.41" )})
+  
   Benthics_oneStation <- reactive({
     req(ns(input$Benthics_oneStationSelection))
-    if()
-    VSCI <- filter(AUdata(),FDT_STA_ID %in% input$Benthics_oneStationSelection)})
+    benthicResultMetrics(filter(conventionals_sf,FDT_STA_ID %in% input$Benthics_oneStationSelection), VSCI, VCPMI) })
   
+  #output$test <- renderPrint({
+  #  req(ns(input$Benthics_oneStationSelection), Benthics_oneStation())
+  #  Benthics_oneStation()$data
+  #})
+
   output$Benthicsplotly <- renderPlotly({
     req(input$Benthics_oneStationSelection, Benthics_oneStation())
-    dat <- Benthics_oneStation()
-    dat$SampleDate <- as.POSIXct(dat$FDT_DATE_TIME2, format="%m/%d/%y")
+    dat <- Benthics_oneStation()$data
+    dat$SampleDate <- as.POSIXct(dat$CollDate, format="%y-%m-%d")
     
-    maxheight <- ifelse(max(dat$FDT_SPECIFIC_CONDUCTANCE, na.rm=T) < 500, 600, max(dat$FDT_SPECIFIC_CONDUCTANCE, na.rm=T)* 1.2)
-    box1 <- data.frame(SampleDate = c(min(dat$SampleDate), min(dat$SampleDate), max(dat$SampleDate),max(dat$SampleDate)), y = c(500, maxheight, maxheight, 500))
-    box2 <- data.frame(x = c(min(dat$SampleDate), min(dat$SampleDate), max(dat$SampleDate),max(dat$SampleDate)), y = c(350, 500, 500, 350))
-    box3 <- data.frame(x = c(min(dat$SampleDate), min(dat$SampleDate), max(dat$SampleDate),max(dat$SampleDate)), y = c(250, 350, 350, 250))
-    box4 <- data.frame(x = c(min(dat$SampleDate), min(dat$SampleDate), max(dat$SampleDate),max(dat$SampleDate)), y = c(0, 250, 250, 0))
-    
+    if(unique(dat$SCI) == "VSCI"){
+      dat <- mutate(dat, bottom = 60)
+      box1 <- data.frame(SampleDate = c(min(dat$SampleDate), min(dat$SampleDate), max(dat$SampleDate),max(dat$SampleDate)), y = c(60, 100, 100, 60))
+      box2 <- data.frame(x = c(min(dat$SampleDate), min(dat$SampleDate), max(dat$SampleDate),max(dat$SampleDate)), y = c(0, 60, 60, 0))
+    } else {
+      dat <- mutate(dat, bottom = 40)
+      box1 <- data.frame(SampleDate = c(min(dat$SampleDate), min(dat$SampleDate), max(dat$SampleDate),max(dat$SampleDate)), y = c(40, 100, 100, 40))
+      box2 <- data.frame(x = c(min(dat$SampleDate), min(dat$SampleDate), max(dat$SampleDate),max(dat$SampleDate)), y = c(0, 40, 40, 0))
+    }
     
     plot_ly(data=dat)%>%
-      add_polygons(x = ~SampleDate, y = ~y, data = box1, fillcolor = "firebrick",opacity=0.6, line = list(width = 0),
-                   hoverinfo="text", name =paste('High Probability of Stress to Aquatic Life')) %>%
-      add_polygons(data = box2, x = ~x, y = ~y, fillcolor = "#F0E442",opacity=0.6, line = list(width = 0),
-                   hoverinfo="text", name =paste('Medium Probability of Stress to Aquatic Life')) %>%
-      add_polygons(data = box3, x = ~x, y = ~y, fillcolor = "#009E73",opacity=0.6, line = list(width = 0),
-                   hoverinfo="text", name =paste('Low Probability of Stress to Aquatic Life')) %>%
-      add_polygons(data = box4, x = ~x, y = ~y, fillcolor = "#0072B2",opacity=0.6, line = list(width = 0),
-                   hoverinfo="text", name =paste('No Probability of Stress to Aquatic Life')) %>%
-      add_markers(data=dat, x= ~SampleDate, y= ~FDT_SPECIFIC_CONDUCTANCE,mode = 'scatter', name="Specific Conductivity (uS/cm)",marker = list(color= '#535559'),
+      add_polygons(x = ~SampleDate, y = ~y, data = box1, fillcolor = "#0072B2",opacity=0.6, line = list(width = 0),
+                   hoverinfo="text", name =paste('Pass Stream Condition Index')) %>%
+      add_polygons(data = box2, x = ~x, y = ~y, fillcolor = "firebrick",opacity=0.6, line = list(width = 0),
+                   hoverinfo="text", name =paste('Fail Stream Condition Index')) %>%
+      add_lines(data=dat, x=~SampleDate,y=~bottom, mode='line', line = list(color = 'black'),
+                hoverinfo = "text", text= "SCI Standard", name="SCI Standard") %>%
+      add_markers(data=dat, x= ~SampleDate, y= ~`Fam SCI`,mode = 'scatter', name=paste(unique(dat$SCI),"(unitless)"),marker = list(color= '#535559'),
                   hoverinfo="text",text=~paste(sep="<br>",
                                                paste("Date: ",SampleDate),
-                                               paste("Depth: ",FDT_DEPTH, "m"),
-                                               paste("Specific Conductivity: ",FDT_SPECIFIC_CONDUCTANCE,"uS/cm")))%>%
+                                               paste(unique(dat$SCI),format(`Fam SCI`,digits=3),"unitless")))%>%
       layout(showlegend=FALSE,
-             yaxis=list(title="Specific Conductivity (uS/cm)"),
+             yaxis=list(title=paste(unique(dat$SCI),"(unitless)")),
              xaxis=list(title="Sample Date",tickfont = list(size = 10)))
   })
   
+  output$SCIroundup <- DT::renderDataTable({
+    req(Benthics_oneStation())
+    DT::datatable(Benthics_oneStation()$roundup, escape=F, rownames = F,
+                  options= list(dom= 't' , scrollX = TRUE, pageLength = nrow(Benthics_oneStation()$roundup), scrollY = "150px"))})
+  
+  
+  output$yearlyAvgSCI <- DT::renderDataTable({
+    req(Benthics_oneStation())
+    DT::datatable(Benthics_oneStation()$yearlyAverage, escape=F, rownames = F,
+                  options= list(dom= 't' , pageLength = nrow(Benthics_oneStation()$yearlyAverage), scrollY = "150px"))})
+  
+  output$rawBenthicsData <- DT::renderDataTable({
+    req(ns(input$Benthics_oneStationSelection), Benthics_oneStation())
+    DT::datatable(as.tibble(Benthics_oneStation()$data), escape=F, rownames = F,
+                  options= list(dom= 't' , scrollX = TRUE, pageLength = nrow(Benthics_oneStation()$data), scrollY = "300px")) 
+  })
+  
 }
-
-
-
+  
 
 ui <- fluidPage(
   helpText('Review each site using the single site visualization section. There are no WQS for Specific Conductivity.'),
@@ -122,15 +217,52 @@ ui <- fluidPage(
 )
 
 server <- function(input,output,session){
+  stationData <- eventReactive( input$stationSelection, {
+    filter(AUData, FDT_STA_ID %in% input$stationSelection) })
+  stationSelected <- reactive({input$stationSelection})
   
-  AUData <- reactive({filter(conventionals_HUC, ID305B_1 %in% 'VAW-H01R_JMS04A00' | 
+  AUData <- reactive({filter(conventionals_HUC, ID305B_1 %in% 'VAW-I09R_JKS06A00' | 
                                ID305B_2 %in% 'VAW-H01R_JMS04A00' | 
                                ID305B_2 %in% 'VAW-H01R_JMS04A00')%>% 
       left_join(WQSvalues, by = 'CLASS')})
   
-  callModule(BenthicsPlotlySingleStation,'Benthics', AUData)
+  callModule(BenthicsPlotlySingleStation,'Benthics', AUData, stationSelected, conventionals_sf, VSCI, VCPMI)
   
 }
 
 shinyApp(ui,server)
+
+
+  
+
+
+
+#output$nSamples <- renderPrint({
+#  req(Benthics_oneStation()) 
+#  cat(Benthics_oneStation()$nSamples)})
+#output$nSpringSamples <- renderPrint({
+#  req(Benthics_oneStation()) 
+#  cat(Benthics_oneStation()$nSpringSample)})
+#output$nFallSamples <- renderPrint({
+#  req(Benthics_oneStation()) 
+#  cat(Benthics_oneStation()$nFallSample)})
+#output$avgSCI <- renderPrint({
+#  req(Benthics_oneStation()) 
+#  cat(format(Benthics_oneStation()$averageSCI,digits=3))})
+#output$minSCI <- renderPrint({
+#  req(Benthics_oneStation()) 
+#  cat(format(Benthics_oneStation()$minFamSCI,digits=3))})
+#output$maxSCI <- renderPrint({
+#  req(Benthics_oneStation())
+#  cat(format(Benthics_oneStation()$maxFamSCI,digits=3))})
+#output$springAvgSCI <- renderPrint({
+#  req(Benthics_oneStation()) 
+#  cat(format(Benthics_oneStation()$springAverage,digits=3))})
+#output$fallAvgSCI <- renderPrint({
+#  req(Benthics_oneStation()) 
+#  cat(format(Benthics_oneStation()$fallAverage,digits=3))})
+
+
+
+
 

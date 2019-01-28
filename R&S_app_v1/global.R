@@ -18,7 +18,7 @@ source('appModules/multipleDependentSelectizeArguments.R')
 source('newBacteriaStandard_working.R')
 
 modulesToReadIn <- c('temperature','pH','DO','SpCond','Salinity','TN','Ecoli','chlA','Enteroccoci', 'TP','sulfate',
-                     'Ammonia', 'Chloride', 'Nitrate','metals', 'fecalColiform','SSC')
+                     'Ammonia', 'Chloride', 'Nitrate','metals', 'fecalColiform','SSC','Benthics')
 for (i in 1:length(modulesToReadIn)){
   source(paste('appModules/',modulesToReadIn[i],'Module.R',sep=''))
 }
@@ -288,6 +288,56 @@ nitratePWS <- function(x){
 
 
 
+#### Benthics Sampling Metrics Functions ---------------------------------------------------------------------------------------------------
+
+benthicResultMetrics <- function(x, VSCI, VCPMI){
+  out <- list()
+  # VCPMI Ecoregion 63 + Chowan
+  if(unique(x$US_L3CODE) %in% 63 & 
+     unique(x$Basin) %in% 'Chowan and Dismal Swamp River Basin'){
+    z <- filter(VCPMI, StationID %in% x$FDT_STA_ID) %>% mutate(SCI = 'VCPMI')}
+  if(unique(x$US_L3CODE) %in% 65  & 
+     !(unique(x$Basin) %in% 'Chowan and Dismal Swamp River Basin' ) ){
+    z <- filter(VCPMI, StationID %in% x$FDT_STA_ID) %>% mutate(SCI = 'VCPMI')}
+  if(unique(x$US_L3CODE) %in% c(45, 64, 66, 67, 69)){
+    z <- filter(VSCI, StationID %in% x$FDT_STA_ID) %>% mutate(SCI = 'VSCI') }
+  
+  if(nrow(z) > 0){
+    z1 <- mutate(z, Year = lubridate::year(CollDate))
+    out$data <- z1
+    spring <- filter(z1, Season %in% 'Spring' )
+    fall <- filter(z1, Season %in% 'Fall' )
+    # output list with all metrics
+    nSamples <- nrow(z1)
+    averageSCI <- format(mean(z1$`Fam SCI`), digits = 3)
+    nSpringSample <- nrow(spring)
+    nFallSample <- nrow(fall)
+    minFamSCI <- format(min(z1$`Fam SCI`), digits = 3)
+    maxFamSCI <- format(max(z1$`Fam SCI`), digits = 3)
+    springAverage <- as.numeric(summarise(spring, springAverage = format(mean(`Fam SCI`), digits = 3)))
+    fallAverage <- as.numeric(summarise(fall, fallAverage = format(mean(`Fam SCI`), digits = 3)))
+    out$roundup <- tibble(StationID = unique(z1$StationID),  
+                          `n Samples`=nSamples, `n Spring Samples`= nSpringSample, `n Fall Samples` = nFallSample,
+                          `Average SCI` =averageSCI, `Spring Average SCI`=springAverage, `Fall Average SCI`= fallAverage,
+                          `Minimum SCI` = minFamSCI, `Maximum SCI`= maxFamSCI)
+    
+    out$yearlyAverage <- z1 %>%
+      group_by(Year) %>%
+      summarise(yearAverage = format(mean(`Fam SCI`), digits = 3)) 
+    
+    
+  } else {
+    out$data <- NA
+    
+    out$roundup <- tibble(StationID = NA,  
+                          `n Samples`=NA, `n Spring Samples`= NA, `n Fall Samples` = NA,
+                          `Average SCI` =NA, `Spring Average SCI`=NA, `Fall Average SCI`= NA,
+                          `Minimum SCI` = NA, `Maximum SCI`= NA)
+    out$yearlyAverage <- tibble(Year= NA, yearAverage=NA)
+    }
+  return(out)
+  
+}
 
 
 

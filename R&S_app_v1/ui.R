@@ -176,7 +176,11 @@ shinyUI(fluidPage(theme="yeti.css",
                                                                helpText('Review each site using the single site visualization section. Total and dissolved sulfate are presented. PWS standards for Total Sulfate only apply to some stations.'),
                                                                DSulfatePlotlySingleStationUI('DSulfate'))
                                                       )),
-                                           tabPanel('EDAS Data', br(), br(), br(), h4('Placeholder'),br(), br(), br()),
+                                           tabPanel('EDAS Data', 
+                                                    helpText('Review each site using the single site visualization section. If no benthic information is presented, then there is no macroinvertebrate data for
+                                                             the station. Always review biologist fact sheets to assist assessment decisions.'),
+                                                    BenthicsPlotlySingleStationUI('Benthics')
+                                           ),
                                            tabPanel('Metals Data', 
                                                     helpText('Review each site using the single site visualization section.'),
                                                     metalsTableSingleStationUI('metals')),

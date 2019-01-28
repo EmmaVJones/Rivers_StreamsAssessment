@@ -163,3 +163,31 @@ saveRDS(tooMany, 'data/tooManyWQSJames.RDS')
 write.csv(BRRO_Sites_AU_WQS, 'data/BRRO_Sites_AU_WQS.csv', row.names=FALSE)
 ```
 
+
+
+# Benthics data needs ecoregion attached to unique StationID's
+
+```{r benthics ecoregion join}
+
+# Bring in Level 3 ecoregion
+library(sf)
+ecoregion <- st_read('data/VA_level3ecoregion.shp')
+
+# add ecoregion to conventionals info
+conventionals_sf <- conventionals_HUC %>%
+  distinct(FDT_STA_ID, .keep_all = T) %>%
+  st_as_sf( coords = c("Longitude", "Latitude"), 
+            remove = F, # don't remove these lat/lon cols from df
+            crs = 4326)  # add projection, needs to be geographic bc entering lat/lng
+
+# make sure everything will work
+identical(st_crs(conventionals_sf),st_crs(ecoregion))
+
+conventionals_sf <- st_join(conventionals_sf, 
+                           select(ecoregion, US_L3CODE, US_L3NAME), 
+                           join = st_intersects)
+
+saveRDS(conventionals_sf, 'data/conventionals_sf.RDS')
+saveRDS(conventionals_sf, 'R&S_app_v1/data/conventionals_sf.RDS')
+```
+
