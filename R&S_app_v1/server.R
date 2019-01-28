@@ -187,11 +187,11 @@ shinyServer(function(input, output, session) {
                                                                     dplyr::select(`ANTIMONY HUMAN HEALTH PWS`:`ZINC ALL OTHER SURFACE WATERS`), 'WAT_MET'),
                                                 # Placeholder for water toxics
                                                 metalsExceedances(filter(Smetals, FDT_STA_ID %in% stationData()$FDT_STA_ID) %>% 
-                                                                    dplyr::select(`ACENAPHTHENE`:ZINC), 'SED_MET')
+                                                                    dplyr::select(`ACENAPHTHENE`:ZINC), 'SED_MET'),
                                                 # Placeholder for sediment toxics
                                                 # Placeholder for fish metals
                                                 # Placeholder for fish toxics
-                                                # Placeholder for Benthic status
+                                                benthicAssessment(stationData(),conventionals_sf,VSCI,VCPMI)
                                                 )%>%
             select(-ends_with('exceedanceRate')))
   
@@ -212,7 +212,9 @@ shinyServer(function(input, output, session) {
       formatStyle(c('E.COLI_SAMP','E.COLI_VIO','E.COLI_STAT'), 'E.COLI_STAT', backgroundColor = styleEqual(c('Review'), c('red'))) %>%
       formatStyle(c('ENTEROCOCCI_SAMP','ENTEROCOCCI_VIO','ENTEROCOCCI_STAT'), 'ENTEROCOCCI_STAT', backgroundColor = styleEqual(c('Review'), c('red'))) %>%
       formatStyle(c('WAT_MET_VIO','WAT_MET_STAT'), 'WAT_MET_STAT', backgroundColor = styleEqual(c('Review'), c('red'))) %>%
-      formatStyle(c('SED_MET_VIO','SED_MET_STAT'), 'SED_MET_STAT', backgroundColor = styleEqual(c('Review'), c('red')))
+      formatStyle(c('SED_MET_VIO','SED_MET_STAT'), 'SED_MET_STAT', backgroundColor = styleEqual(c('Review'), c('red'))) %>%
+      formatStyle(c('BENTHIC_STAT'), 'BENTHIC_STAT', backgroundColor = styleEqual(c('Review'), c('red'))) 
+      
 
   })
   

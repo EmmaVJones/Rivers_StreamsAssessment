@@ -339,13 +339,21 @@ benthicResultMetrics <- function(x, VSCI, VCPMI){
   
 }
 
+benthicAssessment <- function(x,conventionals_sf,VSCI,VCPMI){
+  x <- filter(conventionals_sf, FDT_STA_ID %in% x$FDT_STA_ID)#'2-JKS033.06') #'2-JMS279.41')##
+  if(nrow(x) >0){
+    x2 <- benthicResultMetrics(x,VSCI,VCPMI)$data
+    if (!is.na(x2)){return(data.frame(BENTHIC_STAT='Review'))
+    }else{return(data.frame(BENTHIC_STAT=NA))}
+  } else{return(data.frame(BENTHIC_STAT=NA))}
+}
 
 
 
 
 
-
-
+benthicAssessment(x,conventionals_sf,VSCI,VCPMI)
+  
 
 
 
