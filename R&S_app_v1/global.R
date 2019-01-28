@@ -16,6 +16,8 @@ library(magrittr)
 # Bring in modules
 source('appModules/multipleDependentSelectizeArguments.R')
 source('newBacteriaStandard_working.R')
+conventionals_sf <- readRDS('data/conventionals_sf.RDS')
+
 
 modulesToReadIn <- c('temperature','pH','DO','SpCond','Salinity','TN','Ecoli','chlA','Enteroccoci', 'TP','sulfate',
                      'Ammonia', 'Chloride', 'Nitrate','metals', 'fecalColiform','SSC','Benthics')
@@ -347,12 +349,7 @@ benthicAssessment <- function(x,conventionals_sf,VSCI,VCPMI){
     }else{return(data.frame(BENTHIC_STAT=NA))}
   } else{return(data.frame(BENTHIC_STAT=NA))}
 }
-
-
-
-
-
-benthicAssessment(x,conventionals_sf,VSCI,VCPMI)
+#benthicAssessment(x,conventionals_sf,VSCI,VCPMI)
   
 
 

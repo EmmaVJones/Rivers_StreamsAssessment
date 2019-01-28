@@ -12,7 +12,6 @@ conventionals$FDT_DATE_TIME2 <- as.POSIXct(conventionals$FDT_DATE_TIME, format="
 monStationTemplate <- read_excel('data/tbl_ir_mon_stations_template.xlsx') # from X:\2018_Assessment\StationsDatabase\VRO
 WCmetals <- read_excel('data/WATER_METALS_20170712.xlsx')
 Smetals <- read_excel('data/SEDIMENT_20170712.xlsx')
-conventionals_sf <- readRDS('data/conventionals_sf.RDS')
 # Bring in latest EDAS VSCI and (combined) VCPMI queries
 VSCI <- read_excel('data/Family Metrics VSCI Calculation.xlsx')%>%
   filter(RepNum == 1 & Target_Count == 110 &

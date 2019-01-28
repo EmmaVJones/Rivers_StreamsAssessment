@@ -184,8 +184,12 @@ shinyUI(fluidPage(theme="yeti.css",
                                            tabPanel('Metals Data', 
                                                     helpText('Review each site using the single site visualization section.'),
                                                     metalsTableSingleStationUI('metals')),
-                                           tabPanel('Fish Tissue Data', br(), br(), br(), h4('Placeholder'),br(), br(), br()),
-                                           tabPanel('Toxics Data', br(), br(), br(), h4('Placeholder'),br(), br(), br())
+                                           tabPanel('Toxics Data', 
+                                                    tabsetPanel(
+                                                      tabPanel('Fish Tissue Data'),
+                                                      tabPanel('Water Column Toxics'),
+                                                      tabPanel('Sediment Toxics')))
+                                             
                                          )
                                          
                                            
