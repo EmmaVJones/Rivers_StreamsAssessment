@@ -123,7 +123,9 @@ shinyServer(function(input, output, session) {
   # Pull Conventionals data for selected AU on click
   conventionals_HUC <- eventReactive( input$pullHUCdata, {
     z <- filter(conventionals, Huc6_Vahu6 %in% huc6_filter()$VAHU6) %>%
-      left_join(dplyr::select(stationTable(), FDT_STA_ID, SEC, CLASS, SPSTDS, ID305B_1, ID305B_2, ID305B_3), by='FDT_STA_ID')})
+      left_join(dplyr::select(stationTable(), FDT_STA_ID, SEC, CLASS, SPSTDS, ID305B_1, ID305B_2, ID305B_3#,
+#                              #STATION_TYPE_1, STATION_TYPE_2, STATION_TYPE_3
+                              ), by='FDT_STA_ID')})
   
   output$AUSelection_ <- renderUI({ req(conventionals_HUC())
     selectInput('AUSelection', 'Assessment Unit Selection', choices = conventionals_HUC()$ID305B_1)  })
@@ -178,16 +180,18 @@ shinyServer(function(input, output, session) {
     DT::datatable(z, options= list(pageLength = nrow(z), scrollY = "250px", dom='t'))  })
   
   ## Station Table View Section
-  observe(siteData$StationTableResults <- cbind(tempExceedances(stationData()), DOExceedances_Min(stationData()), pHExceedances(stationData()),
+  observe(siteData$StationTableResults <- cbind(
+#    #StationTableStartingData(stationData()), 
+    tempExceedances(stationData()), DOExceedances_Min(stationData()), pHExceedances(stationData()),
                                                 bacteriaExceedances_OLD(bacteria_Assessment_OLD(stationData(), 'E.COLI', 126, 235),'E.COLI')%>% 
                                                   dplyr::rename('ECOLI_VIO' = 'E.COLI_VIO', 'ECOLI_SAMP'='E.COLI_SAMP', 'ECOLI_STAT'='E.COLI_STAT'),# force things to match Cleo's format
                                                 bacteriaExceedances_OLD(bacteria_Assessment_OLD(stationData(), 'ENTEROCOCCI', 35, 104),'ENTEROCOCCI')%>% 
                                                   dplyr::rename('ENTER_VIO' = 'ENTEROCOCCI_VIO', 'ENTER_SAMP'='ENTEROCOCCI_SAMP', 'ENTER_STAT'='ENTEROCOCCI_STAT'),# force things to match Cleo's format
                                                 metalsExceedances(filter(WCmetals, FDT_STA_ID %in% stationData()$FDT_STA_ID) %>% 
                                                                     dplyr::select(`ANTIMONY HUMAN HEALTH PWS`:`ZINC ALL OTHER SURFACE WATERS`), 'WAT_MET'),
-                                                acuteNH3exceedance(stationData()) %>% 
-                                                  dplyr::select(AcuteAmmonia_VIO, AcuteAmmonia_STAT) %>% 
-                                                  dplyr::rename('WAT_TOX_VIO' ='AcuteAmmonia_VIO','WAT_TOX_STAT' = 'AcuteAmmonia_STAT'),#data.frame(WAT_TOX_VIO='Not Analyzed by App', WAT_TOX_STAT='Not Analyzed by App'),# Placeholder for water toxics
+#                                                #acuteNH3exceedance(stationData()) %>% 
+#                                                #  dplyr::select(AcuteAmmonia_VIO, AcuteAmmonia_STAT) %>% 
+#                                                #  dplyr::rename('WAT_TOX_VIO' ='AcuteAmmonia_VIO','WAT_TOX_STAT' = 'AcuteAmmonia_STAT'),#data.frame(WAT_TOX_VIO='Not Analyzed by App', WAT_TOX_STAT='Not Analyzed by App'),# Placeholder for water toxics
                                                 metalsExceedances(filter(Smetals, FDT_STA_ID %in% stationData()$FDT_STA_ID) %>% 
                                                                     dplyr::select(`ACENAPHTHENE`:ZINC), 'SED_MET'),
                                                 data.frame(SED_TOX_VIO='Not Analyzed by App', SED_TOX_STAT='Not Analyzed by App'),# Placeholder for sediment toxics
@@ -219,7 +223,7 @@ shinyServer(function(input, output, session) {
       formatStyle(c('ECOLI_SAMP','ECOLI_VIO','ECOLI_STAT'), 'ECOLI_STAT', backgroundColor = styleEqual(c('Review'), c('red'))) %>%
       formatStyle(c('ENTER_SAMP','ENTER_VIO','ENTER_STAT'), 'ENTER_STAT', backgroundColor = styleEqual(c('Review'), c('red'))) %>%
       formatStyle(c('WAT_MET_VIO','WAT_MET_STAT'), 'WAT_MET_STAT', backgroundColor = styleEqual(c('Review'), c('red'))) %>%
-      formatStyle(c('WAT_TOX_VIO','WAT_TOX_STAT'), 'WAT_TOX_STAT', backgroundColor = styleEqual(c('Review'), c('red'))) %>%
+#      #formatStyle(c('WAT_TOX_VIO','WAT_TOX_STAT'), 'WAT_TOX_STAT', backgroundColor = styleEqual(c('Review'), c('red'))) %>%
       formatStyle(c('SED_MET_VIO','SED_MET_STAT'), 'SED_MET_STAT', backgroundColor = styleEqual(c('Review'), c('red'))) %>%
       formatStyle(c('BENTHIC_STAT'), 'BENTHIC_STAT', backgroundColor = styleEqual(c('Review'), c('red'))) 
       

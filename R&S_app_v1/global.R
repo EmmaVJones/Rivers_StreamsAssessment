@@ -77,6 +77,39 @@ assessmentDetermination <- function(parameterDF,parameterAssessmentDF,parameter,
 #assessmentDetermination(temp,temp_Assess,"temperature","Aquatic Life")
 
 
+# Station Table building functions
+
+concatinateUnique <- function(stuff){
+  if(is.na(stuff)){return(NA)
+  }else{
+    return(paste(unique(stuff), collapse= ', '))
+    }
+}
+
+changeDEQRegionName <- function(stuff){
+  # have to do this bc different places in conventionals report the assessment region over sample region
+  if(length(stuff) == 1){
+    if(stuff == "Valley"){return('VRO')}
+    if(stuff == "Northern"){return('NRO')}
+    if(stuff == "Piedmont"){return('PRO')}
+    if(stuff == "Blue Ridge"){return('BRRO')}
+    if(stuff == "Tidewater"){return('TRO')}
+    if(stuff == "Southwest" ){return('SWRO')}
+    if(is.na(stuff))return(NA)
+  } else {return(concatinateUnique(stuff))}
+}
+
+StationTableStartingData <- function(x){
+  data.frame(ID305B_1= concatinateUnique(x$ID305B_1), ID305B_2= concatinateUnique(x$ID305B_2), ID305B_3= concatinateUnique(x$ID305B_3),
+             DEPTH = concatinateUnique(x$FDT_DEPTH_DESC), STATION_ID = concatinateUnique(x$FDT_STA_ID), REGION = changeDEQRegionName(concatinateUnique(x$Deq_Region)), 
+             STATION_TYPE_1= concatinateUnique(x$STATION_TYPE_1), STATION_TYPE_2=concatinateUnique(x$STATION_TYPE_2), 
+             STATION_TYPE_3= concatinateUnique(x$STATION_TYPE_3), STATION_LAT = concatinateUnique(x$Latitude), 
+             STATION_LON = concatinateUnique(x$Longitude), 
+             WATERSHED_ID= substr(strsplit(concatinateUnique(x$ID305B_1), '-')[[1]][2], 1, 3), VAHU6 = concatinateUnique(x$Huc6_Vahu6) )
+  
+}
+
+
 
 #### Temperature Assessment Functions ---------------------------------------------------------------------------------------------------
 
