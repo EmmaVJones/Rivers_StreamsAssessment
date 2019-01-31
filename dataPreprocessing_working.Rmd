@@ -83,8 +83,8 @@ BRRO_Sites <- conventionals %>%
            crs = 4269) %>% # add projection, needs to be geographic for now bc entering lat/lng, 
   st_transform( st_crs(AUs)) # now change crs to Albers to make snapping work
   
-sum(!is.na(BRRO_Sites$ID305B_1))/nrow(BRRO_Sites)*100
-sum(is.na(BRRO_Sites$ID305B_1))/nrow(BRRO_Sites)*100
+sum(!is.na(BRRO_Sites$ID305B_1))/nrow(BRRO_Sites)*100 # 53% have last cycle AU info
+sum(is.na(BRRO_Sites$ID305B_1))/nrow(BRRO_Sites)*100 # 46% don't have last cycle AU info
 ```
 
 About half have existing AU information, cool. Will fix no AU sites by snapping to spatial layer with that information.

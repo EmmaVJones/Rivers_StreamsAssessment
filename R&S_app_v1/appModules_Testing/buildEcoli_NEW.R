@@ -151,16 +151,25 @@ EcoliPlotlySingleStationUI <- function(id){
       plotlyOutput(ns('Ecoliplotly')),
       br(),hr(),br(),
       fluidRow(
-        column(6, h5('All E. coli records that are above the criteria for the ',span(strong('selected site')),' are highlighted below.'),
-               h6(strong('Old Standard (STV= 235 CFU / 100 mL, geomean = 126 CFU / 100 mL)')),
-                   DT::dataTableOutput(ns('EcoliexceedancesOldStdTableSingleSitegeomean')),
-                   DT::dataTableOutput(ns('EcoliexceedancesOldStdTableSingleSiteSTV')), br(), br(), hr(), br(), br(), 
-               h6(strong('New Standard (STV= 410 CFU / 100 mL, geomean = 126 CFU / 100 mL with additional sampling requirements)')),
+        column(6, h5('All E. coli records that are ',span(strong('above the criteria')),' for the ',
+                     span(strong('selected site')),' are highlighted below.',
+                     span(strong('If no data are reflected in below tables then no data exceeded the respective criteria.'))),
+               h4(strong('Old Standard (Monthly Geomean = 126 CFU / 100 mL)')),
+               DT::dataTableOutput(ns('EcoliexceedancesOldStdTableSingleSitegeomean')),
+               h4(strong('Old Standard (Single Sample Maximum = 235 CFU / 100 mL)')),
+               DT::dataTableOutput(ns('EcoliexceedancesOldStdTableSingleSiteSTV')), br(),  br(), hr(), br(), br(), 
+               h4(strong('New Standard (STV= 410 CFU / 100 mL, geomean = 126 CFU / 100 mL with additional sampling requirements)')),
+               helpText('The below table highlights all analyzed windows that have either STV violations OR geomean violations. Note
+                        the number of samples in the window, STV Assessment, and Geomean Assessment columns for context. These violations
+                        are important to understand the dataset, but assessment decision in the table to the right is where one should look
+                        for assistance choosing which of the potential violations are driving the decision. Explore the dataset in 
+                        90 day windows in the interactive graph below and the full dataset with assessment decisions paired with each window
+                        in the bottom-most table.'),
                DT::dataTableOutput(ns('EcoliexceedancesNEWStdTableSingleSite'))),
         column(6, h5('Individual E. coli exceedance statistics for the ',span(strong('selected site')),' are highlighted below.'),
-               h6(strong('Old Standard (STV= 235 CFU / 100 mL, geomean = 126 CFU / 100 mL)')), 
-               DT::dataTableOutput(ns("EcoliOldStdTableSingleSite")), br(), br(), br(), br(), br(), br(), br(), br(), br(), br(), br(), br(), br(), br(), br(), hr(), br(), br(),
-               h6(strong('New Standard (STV= 410 CFU / 100 mL, geomean = 126 CFU / 100 mL with additional sampling requirements)')), 
+               h4(strong('Old Standard (Single Sample Maximum = 235 CFU / 100 mL, geomean = 126 CFU / 100 mL)')), 
+               DT::dataTableOutput(ns("EcoliOldStdTableSingleSite")), br(), br(), br(),   br(),br(),br(), br(), br(),br(), br(), br(), br(), br(), br(), br(), br(), br(), br(), hr(), br(), br(),
+               h4(strong('New Standard (STV= 410 CFU / 100 mL, geomean = 126 CFU / 100 mL with additional sampling requirements)')), 
                DT::dataTableOutput(ns("EcoliNEWStdTableSingleSite")),
                h4(strong('See below section for detailed analysis with new recreation standard.')))),
       hr(),br(),
@@ -170,13 +179,12 @@ EcoliPlotlySingleStationUI <- function(id){
                the drop down box to select the start of the window in question.'),
       fluidRow(
         column(6, helpText('Below is the raw data associated with the ',span('selected site'),'.'), 
-               DT::dataTableOutput(ns('rawData'))),
+               h5(strong('Raw Data')),DT::dataTableOutput(ns('rawData'))),
         column(6, uiOutput(ns('windowChoice')),
                plotlyOutput(ns('EcoliplotlyZoom')))),
       br(), br(),
+      h5(strong('Analyzed Data (Each window with an individual assessment decision')),
       DT::dataTableOutput(ns('analysisTable')))
-               
-    
   )
 }
 
@@ -274,8 +282,12 @@ EcoliPlotlySingleStation <- function(input,output,session, AUdata, stationSelect
   
   output$windowChoice <- renderUI({
     req(Ecoli_oneStation(),newSTDbacteriaData())
-    selectInput(ns('windowChoice_'),'Select 90 day window start date',
-                choices = unique(newSTDbacteriaData()$`Date Time`), width = '40%')})
+    fluidRow(
+      column(4, selectInput(ns('windowChoice_'),'Select 90 day window start date',
+                choices = unique(newSTDbacteriaData()$`Date Time`), width = '100%')),
+      column(8, helpText('Orange line corresponds to the window geomean; wide black dashed line
+                         corresponds to the geomean criteria; thin black dashed line corresponds
+                         to the STV limit.')))})
   
   output$EcoliplotlyZoom <- renderPlotly({
     req(input$windowChoice_, Ecoli_oneStation(),newSTDbacteriaData())
@@ -314,7 +326,7 @@ EcoliPlotlySingleStation <- function(input,output,session, AUdata, stationSelect
   
   output$analysisTable <- DT::renderDataTable({
     req(Ecoli_oneStation(),newSTDbacteriaData())
-    z <- bacteriaAssessmentDecision(newSTDbacteriaData(), 10, 410, 126) %>%
+    z <- bacteriaExceedances_NewStd(newSTDbacteriaData(), 10, 410, 126) %>%
       dplyr::select(-associatedData) # remove embedded tibble to make table work
     DT::datatable(z, rownames = FALSE, options= list(scrollX = TRUE, pageLength = nrow(z), scrollY = "400px", dom='t'))
   })

@@ -1,0 +1,356 @@
+---
+title: "Preparing Data for Mary"
+author: "Emma Jones"
+date: "January 29, 2019"
+output: html_document
+---
+
+Run in R 3.5.1
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(sf)
+library(readxl)
+
+```
+
+This document walks users through the requisite data preprocessing steps for the 2020 IR Rivers and Streams Assessment decision support application. All initial steps are tested on 2018 IR data and thus need to be rerun for 2020 data when those datasets become available.
+
+
+### Mary Version
+
+This document demonstrates the necessary steps to get (any) regional office up to speed with prerequisite data organization/processing steps to run the 2020 IR. This version works with BRRO data (WCRO and SCRO) to get Mary ready for assessing.
+
+## Input data
+
+#### Conventionals
+Bring in Roger's conventionals dataset. Make it a csv immediately to speed up rendering in app. This is the final data pull from Roger for the 2018 IR. As of today, the 2020 final IR pull is not available. **Subsitute 2020 data in when available.**
+
+```{r conventionals2018}
+#conventionals <- read_excel('workingDatasets/CONVENTIONALS_20171010.xlsx',sheet = 'CONVENTIONALS')
+#conventionals$FDT_DATE_TIME2 <- as.POSIXct(conventionals$FDT_DATE_TIME, format="%m/%d/%y %H:%M")
+#write.csv(conventionals, 'workingDatasets/CONVENTIONALS_20171010.csv', row.names=F)
+
+conventionals <- suppressWarnings(suppressMessages(read_csv('workingDatasets/CONVENTIONALS_20171010.csv')))
+#glimpse(conventionals)
+```
+
+Work with just BRRO for now. Skip step when working up full state data.
+
+```{r BRROconventionals}
+conventionals <- filter(conventionals, Deq_Region == 'Blue Ridge') 
+```
+
+Now we need to make a dataset of all UNIQUE StationID's for the region of interest to work with.
+
+```{r BRROconventionalsDistinct}
+
+conventionals_D <- distinct(conventionals, FDT_STA_ID, .keep_all = T) %>%
+  select(FDT_STA_ID:FDT_SPG_CODE, STA_LV2_CODE:STA_CBP_NAME)# drop data to avoid any confusion
+rm(conventionals)
+```
+
+
+#### Last Cycle's Stations Table
+
+This is a draft from Mary right now, but everything should be in there (Stations and ID305B's). Keep determinations for now even though they are draft.
+
+**There are duplicated rows in this dataset that royally F things up. I have filtered them out for now. Not sure if correct.**
+
+```{r stationTable}
+stationTable <- read_excel('data/Emma_Stations2018IR_Draft_Dec.xlsx')
+
+stationTable1 <- stationTable %>%
+  group_by(STATION_ID) %>%
+  mutate(extra= n()) %>%
+  select(STATION_ID, extra, everything())
+
+stationTable2 <- distinct(stationTable, STATION_ID, ID305B_1, ID305B_2, ID305B_3, .keep_all = T)%>%
+  group_by(STATION_ID) %>%
+  mutate(extra= n()) %>%
+  select(STATION_ID, extra, everything()) %>% # still extras so just take distinct STATION_ID 
+  distinct(STATION_ID,.keep_all = T) %>%
+  select(-extra)
+rm(stationTable1)
+```
+
+
+#### Assessment Spatial Layer (last cycle)
+
+Since 2018 isn't published yet, working from 2016 final layer. 
+
+```{r Assessment Unit shapefile}
+AUs <- st_read('GIS/va_2016_aus_riverine_WGS84.shp') %>%
+  st_transform(crs = 102003) # convert to Albers Equal Area just for snapping
+```
+
+
+
+## Data Organization Step 1: Get AU's from previous cycle for conventionals data.
+
+This step uses last cycle's ID305B columns and joins that information to the conventionals StationID's. This is where all assessments should start. This information **COULD** change if an AU is split through this assessment cycle's assessment process.
+
+```{r join unique StationIDs}
+
+BRRO_Sites <- mutate(conventionals_D, STATION_ID = FDT_STA_ID) %>% # make joining column
+  left_join(stationTable2, by='STATION_ID') %>% # join to get ID305B info
+  st_as_sf(coords = c("Longitude", "Latitude"),  # make spatial layer while at it
+           remove = F, # don't remove these lat/lon cols from df
+           crs = 4269) %>% # add projection, needs to be geographic for now bc entering lat/lng, 
+  st_transform( st_crs(AUs)) # now change crs to Albers to make snapping work
+  
+sum(!is.na(BRRO_Sites$ID305B_1))/nrow(BRRO_Sites)*100 # 73% have last cycle AU info
+sum(is.na(BRRO_Sites$ID305B_1))/nrow(BRRO_Sites)*100 # 27% don't have last cycle AU info
+
+```
+
+
+So basics statistics for now, comparing 2018 IR data from Roger to Mary's almost finished 2018 IR Stations table, still missing 27% of stations ID_305B info??? 
+
+```{r BRRO sites without AU info}
+BRRO_Sites_noAU <- filter(BRRO_Sites, is.na(ID305B_1))
+```
+
+Looking at the BRRO_Sites_noAU dataset we can see the majority of sites are from other regions, but there are still quite a few WCRO stations without AU info. The majority of these are lake stations (STA_LV1_CODE == 'RESERV'). Makes sense, but we will need to fix that eventually.
+
+## Data Organization Step 1.1: Automate AU snapping for StationID's that did not immediately join to last cycle's Station Table 
+
+```{r snapAUs}
+source('snapFunctions.R')
+
+snapList_AU <- snap_Points_to_Feature_List(BRRO_Sites_noAU,'FDT_STA_ID',AUs, seq(10,50,by=10))
+
+# function to find sites with +1 segment
+snapCheck <- function(successDataFrame){
+  successDataFrame %>%
+    group_by(`Point Unique Identifier`) %>%
+    filter(n()>1)
+}
+
+# sites that snapped to too many segments
+tooMany <- snapCheck(snapList_AU[['sf_output']])
+length(unique(tooMany$`Point Unique Identifier`)) #13
+
+# perfect sites
+sites <- filter(snapList_AU[['sf_output']], !(`Point Unique Identifier` %in% tooMany$`Point Unique Identifier`)) %>%
+  st_set_geometry(NULL) %>%
+  mutate(FDT_STA_ID=`Point Unique Identifier`)
+nrow(sites) #157
+
+
+#saveRDS(snapList_AU, 'data/allBRRO_snapList_AU.RDS')
+#snapList_AU <- readRDS('data/allBRRO_snapList_AU.RDS')
+```
+
+So out of 230 stations we tried to snap to AUs, 157 snapped to only one segment (good), 13 snapped to more than one segment (okay), and 60 snapped to no segments (not awesome).
+
+
+## Data Organization Step 1.2: Fix StationID's that snapped to too many segments
+
+```{r fix tooMany}
+
+plot(tooMany['Point Unique Identifier'][1,])
+plot(filter(BRRO_Sites, FDT_STA_ID %in% tooMany[1,]$`Point Unique Identifier`)['FDT_STA_ID'])
+
+library(mapview)
+library(leaflet)
+z <- filter(tooMany, `Point Unique Identifier` =='2-APP143.57')
+
+mapview(z)
+mapview(tooMany) + mapview(BRRO_Sites_noAU)
+
+tooMany <- snapCheck(snapList_AU[['sf_output']] ) %>%
+  st_transform(4326)# project to WGS84 for plotting
+
+siteWithTooMany <- filter(BRRO_Sites_noAU, FDT_STA_ID %in% unique(tooMany$`Point Unique Identifier`)) %>%
+  st_transform(4326)# project to WGS84 for plotting
+
+
+leaflet(tooMany) %>% 
+  addProviderTiles(providers$Esri.NatGeoWorldMap,group='Nat Geo World Map') %>%
+  addProviderTiles(providers$Esri.WorldImagery,group='Esri World Imagery') %>%
+  addProviderTiles(providers$OpenStreetMap,group='Open Street Map') %>%
+  addPolylines(data=tooMany, group='WQS',
+               color = ~colorNumeric(c("red", "green", "blue",'yellow'),OBJECTID)(OBJECTID),
+               popup=popupTable(tooMany,zcol=c('Point Unique Identifier','Buffer Distance',
+                                               "ID305B","MILES","CYCLE","WATER_NAME","LOCATION",
+                                               "AU_COMMENT","CATEGORY","IMP_CAUSE","SOURCE",
+                                               "AQUA_LIFE","DEEP_CHANN","DEEP_WATER","FISH_CONSU",
+                                               "MIGRATORY","OPEN_WATER","PWS","RECREATION","SHELLFISH","SW_SAV","WILDLIFE"))) %>%
+  addMarkers(data=siteWithTooMany,~Longitude,~Latitude,#~geometry[[1]][1],~geometry[[1]][1], 
+             popup = siteWithTooMany$FDT_STA_ID, group='point') %>%
+  addLayersControl(baseGroups=c('Nat Geo World Map','Esri World Imagery','Open Street Map'),
+                   overlayGroups = c('WQS','point'),
+                   options=layersControlOptions(collapsed=T),
+                   position='topleft') 
+
+
+mapview(tooMany) + mapview(BRRO_Sites_noAU)
+m <- mapview(tooMany, color = 'yellow',lwd= 5, label= NULL, layer.name = c('Selected HUC6'),
+                 popup= popupTable(huc6_filter(), zcol=c('VAHU6',"VaName","VAHU5","ASSESS_REG"))) + 
+      mapview(tooMany[1:4,], label= tooMany$ID305B, layer.name = c('AUs in Selected HUC6'), zcol = "ID305B", legend=FALSE,
+              popup= popupTable(tooMany, zcol=c("ID305B","MILES","CYCLE","WATER_NAME","LOCATION" )))
+    m@map 
+
+```
+
+
+editData package to prevent making an app???
+https://cran.r-project.org/web/packages/editData/README.html
+
+```{r editData solution???}
+install.packages("editData")
+library(editData)
+
+mtcarsnew <- editData(mtcars )
+```
+
+```{r now with spatial data}
+mapview(tooMany[1:3,], label= tooMany$ID305B, layer.name = c('AUs in Selected HUC6'), zcol = "ID305B", legend=FALSE,
+              popup= popupTable(tooMany, zcol=c("ID305B","MILES","CYCLE","WATER_NAME","LOCATION" ))) +
+  mapview(siteWithTooMany[1,], color = 'yellow', lwd = 5, label= siteWithTooMany[1,]$FDT_STA_ID, layer.name = c('Selected Station'),
+              popup=NULL)
+  
+
+site1results <- editData(tooMany[1:3,] %>% st_set_geometry(NULL))
+
+
+shiny::runApp(system.file('example',package='editData'))
+shiny::runApp(system.file('multipleData',package='editData'))
+shiny::runApp(system.file('multipleFiles',package='editData'))
+```
+
+
+```{r wrap it in a loop?}
+
+for(i in 1:3){
+  out <- list()
+  siteAtHand <- filter(tooMany, `Point Unique Identifier` %in% unique(tooMany$`Point Unique Identifier`)[i]) %>% st_set_geometry(NULL)
+  out[[i]] <- editData(siteAtHand)
+}
+
+out
+```
+Negative.
+
+Next thought, shiny minipage with mapview map
+https://shiny.rstudio.com/articles/gadget-ui.html
+https://www.rstudio.com/resources/webinars/shiny-gadgets-interactive-tools/
+https://rpubs.com/seandavi/bioc2016_gadgets
+
+```{r shiny minipage}
+library(shiny)
+library(miniUI)
+
+myGadgetFunc <- function(inputValue1, inputValue2) {
+  ui <- miniPage(
+    gadgetTitleBar("My Gadget"),
+    miniContentPanel(
+      # Define layout, inputs, outputs
+    )
+  )
+  
+  server <- function(input, output, session) {
+    # Define reactive expressions, outputs, etc.
+     
+    # When the Done button is clicked, return a value
+    observeEvent(input$done, {
+      returnValue <- ...
+      stopApp(returnValue)
+    })
+  }
+  runGadget(ui, server)
+}
+```
+
+
+```{r}
+regexTest = function(pattern="night", 
+                     x = "We can turn day into night with this Gadget",
+                     replace = "day") {
+  
+  ui = miniPage(
+    gadgetTitleBar("Basic gsub tester"),
+    miniContentPanel(
+      textInput("text","Text:", x),
+      textInput('pattern','Pattern to replace:', pattern),
+      textInput("replacement","Text to substitute", replace),
+      textOutput("out")
+    )
+  )
+  
+  server = function(input, output, session) {
+    output$out = renderText( gsub(pattern = input$pattern,
+                                 replace = input$replacement, 
+                                 x = input$text) )
+    observeEvent(input$done, {
+      returnValue <- input$pattern
+      stopApp(returnValue)
+    })
+  }
+  runGadget(ui, server)
+}
+
+test <- regexTest(pattern="night", x = "We can turn day into night with this Gadget", replace = "day") 
+```
+
+
+
+```{r}
+ggbrush <- function(dframe, xvar, yvar, viewer=paneViewer()) {
+  
+  ui <- miniPage(
+    gadgetTitleBar("Drag to select points"),
+    miniContentPanel(
+      # The brush="brush" argument means we can listen for
+      # brush events on the plot using input$brush.
+      plotOutput("plot", height = "100%", brush = "brush")
+    )
+  )
+  
+  server <- function(input, output, session) {
+    
+    # Render the plot
+    output$plot <- renderPlot({
+      # Plot the data with x/y vars indicated by the caller.
+      ggplot(dframe, aes_string(xvar, yvar)) + geom_point()
+    })
+    
+    # Handle the Done button being pressed.
+    observeEvent(input$done, {
+      # Return the brushed points. See ?shiny::brushedPoints.
+      stopApp(brushedPoints(dframe, input$brush))
+    })
+  }
+
+  runGadget(ui, server)
+}
+
+ggbrush(dframe, xvar, yvar, viewer=paneViewer())
+```
+
+```{r}
+shinyFunction = function() {
+  require(shiny)
+  server <- function(input, output) {
+    output$distPlot <- renderPlot({
+      hist(rnorm(input$obs), col = 'darkgray', border = 'white')
+    })
+  }
+  
+  ui <- fluidPage(
+    sidebarLayout(
+      sidebarPanel(
+        sliderInput("obs", "Number of observations:", min = 10, max = 500, value = 100)
+      ),
+      mainPanel(plotOutput("distPlot"))
+    )
+  )
+  
+  shinyApp(ui = ui, server = server)
+}
+
+test <- shinyFunction()
+```
+
