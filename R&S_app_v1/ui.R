@@ -92,9 +92,10 @@ shinyUI(fluidPage(theme="yeti.css",
                                          helpText('This table outputs the site specific results for direct export to the Station Table. It also serves to highlight
                                                   where exceedances are present and should be reviewed in the individual parameter visualization tabs below.'),
                                          h4('Official Station Results Table'),
+                                         helpText('Note that WAT_TOX_VIO AND WAT_TOX_STAT are only reflecting ammonia analysis.'),
                                          DT::dataTableOutput('stationTableDataSummary'),
-                                         h4('Additional Results'),
-                                         DT::dataTableOutput('stationTableDataSummary2'),
+                                         #h4('Additional Results'),
+                                         #DT::dataTableOutput('stationTableDataSummary2'),
                                          br(),hr(),br(),
                                          h3('Assessment Unit Raw Data Review and Visualization'),
                                          tabsetPanel(
@@ -110,29 +111,23 @@ shinyUI(fluidPage(theme="yeti.css",
                                                                h5('Assessment Window:'),
                                                                fluidRow(column(1),column(10,textOutput('stationDataTableAssessmentWindow'))), br(),br()),
                                                       tabPanel('Temperature',
-                                                               helpText('Review each site using the single site visualization section, then 
-                                                             proceed to the bottom of the page to find exceedance rate for the entire assessment unit.',br(),
-                                                                        span(strong('NOTE: The temperature exceedance analysis results at the bottom of the page include data
-                                                                         from ALL stations within the assessment unit.'))),
-                                                               temperaturePlotlySingleStationUI('temperature'),
-                                                               br(),hr(),br(),
-                                                               temperatureExceedanceAnalysisUI('temperature_ExceedanceAnalysis')),
+                                                               helpText('Review each site using the single site visualization section. The results from this analysis are reflected
+                                                                        in the TEMP_VIO, TEMP_SAMP, and TEMP_STAT columns in the station table.'),
+                                                               temperaturePlotlySingleStationUI('temperature')),
+                                                               #br(),hr(),br(),
+                                                               #temperatureExceedanceAnalysisUI('temperature_ExceedanceAnalysis')),
                                                       tabPanel('pH',
-                                                               helpText('Review each site using the single site visualization section, then proceed to the bottom of the page 
-                                                             to find exceedance rate for the entire assessment unit.',br(), 
-                                                                        span(strong('NOTE: The pH exceedance analysis results at the bottom of the page include data from 
-                                                                         ALL stations within the assessment unit.'))),
-                                                               pHPlotlySingleStationUI('pH'),
-                                                               br(),hr(),br(),
-                                                               pHExceedanceAnalysisUI('pH_ExceedanceAnalysis')),
+                                                               helpText('Review each site using the single site visualization section. The results from this analysis are reflected
+                                                                        in the PH_VIO, PH_SAMP, and PH_STAT columns in the station table.'),
+                                                               pHPlotlySingleStationUI('pH')),
+                                                               #br(),hr(),br(),
+                                                               #pHExceedanceAnalysisUI('pH_ExceedanceAnalysis')),
                                                       tabPanel("DO",
-                                                               helpText('Review each site using the single site visualization section, then proceed to the bottom of the page 
-                                                             to find exceedance rate for the entire assessment unit.',br(),
-                                                                        span(strong('NOTE: The DO exceedance analysis results at the bottom of the page include data from ALL 
-                                                                         stations within the assessment unit.'))),
-                                                               DOPlotlySingleStationUI('DO'),
-                                                               br(),hr(),br(),
-                                                               DOExceedanceAnalysisUI('DO_ExceedanceAnalysis')),
+                                                               helpText('Review each site using the single site visualization section. The results from this analysis are reflected
+                                                                        in the DO_VIO, DO_SAMP, and DO_STAT columns in the station table.'),
+                                                               DOPlotlySingleStationUI('DO')),
+                                                               #br(),hr(),br(),
+                                                               #DOExceedanceAnalysisUI('DO_ExceedanceAnalysis')),
                                                       tabPanel("Specific Conductance",
                                                                helpText('Review each site using the single site visualization section. There are no WQS for Specific Conductivity.'),
                                                                SpCondPlotlySingleStationUI('SpCond')),
@@ -143,25 +138,30 @@ shinyUI(fluidPage(theme="yeti.css",
                                                                helpText('Review each site using the single site visualization section. There are no WQS for Total Nitrogen.'),
                                                                TNPlotlySingleStationUI('TN')),
                                                       tabPanel("Ammonia",
-                                                               helpText('Review each site using the single site visualization section, then proceed to the bottom of the page 
-                                                                        to find exceedance rate for the entire assessment unit.'),br(),
+                                                               helpText('Review each site using the single site visualization section. The results from this analysis are reflected
+                                                                        in the WAT_TOX_VIO and WAT_TOX_STAT columns in the station table.'),br(),
                                                                AmmoniaPlotlySingleStationUI('Ammonia')),
                                                       tabPanel("Total Phosphorus",
-                                                               helpText('Review each site using the single site visualization section. There are no WQS for Total Phosphorus.'),
+                                                               helpText('Review each site using the single site visualization section. There are no WQS for Total Phosphorus; however,
+                                                                        exceedances of 0.2 mg/L are noted in a table below the plot. Additionally, the sample counts are reflected in 
+                                                                        the NUT_TP_SAMP column in the station table.'),
                                                                TPPlotlySingleStationUI('TP')),
                                                       tabPanel("Fecal Coliform",
                                                                helpText('Review each site using the single site visualization section.'),
                                                                fecalPlotlySingleStationUI('fecal')),
                                                       tabPanel("E. Coli",
                                                                helpText('Review each site using the single site visualization section. Both the old and the new E. coli assessment
-                                                                        method statistics are presented in the station visualization section.'),
+                                                                        method statistics are presented in the station visualization section. The results from the old analysis method are reflected
+                                                                        in the ECOLI_VIO, ECOLI_SAMP, and ECOLI_STAT columns in the station table.'),
                                                                EcoliPlotlySingleStationUI('Ecoli')),
                                                       tabPanel("Enterococci",
                                                                helpText('Review each site using the single site visualization section. Both the old and the new Enteroccoci assessment
-                                                                        method statistics are presented in the station visualization section.'),
+                                                                        method statistics are presented in the station visualization section. The results from the old analysis method are reflected
+                                                                        in the ENTEROCCOCI_VIO, ENTEROCCOCI_SAMP, and ENTEROCCOCI_STAT columns in the station table.'),
                                                                EnteroPlotlySingleStationUI('Entero')),
                                                       tabPanel("Chlorophyll a",
-                                                               helpText('Review each site using the single site visualization section. Chlorophyll a standards only apply to some stations.'),
+                                                               helpText('Review each site using the single site visualization section. Chlorophyll a standards only apply to some stations.
+                                                                        However, the sample counts are reflected in the NUT_CHLA_SAMP column in the station table.'),
                                                                chlAPlotlySingleStationUI('chlA')),
                                                       tabPanel("Suspended Sediments",
                                                                helpText('Review each site using the single site visualization section.'),

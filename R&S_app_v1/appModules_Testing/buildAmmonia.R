@@ -45,14 +45,14 @@ acuteNH3exceedance <- function(x){
   # Trout absent scenario, freshwater
   if(unique(x$CLASS) %in% c("III","IV")){
     ammonia <- acuteNH3limit(x) %>%
-      filter(!is.na(NH3limit)) %>% #get rid of NA's
+      filter(!is.na(AMMONIA)) %>% #get rid of NA's
       rename(parameter = !!names(.[4]), limit = !!names(.[5])) %>% # rename columns to make functions easier to apply
       mutate(exceeds = ifelse(parameter > limit, T, F)) # Identify where above NH3 WQS limit
     return(quickStats(ammonia, 'AcuteAmmonia'))  }
   # Trout present scenario, freshwater
   if(unique(x$CLASS) %in% c("V","VI")){
     ammonia <- acuteNH3limit(x) %>%
-      filter(!is.na(NH3limit)) %>% #get rid of NA's
+      filter(!is.na(AMMONIA)) %>% #get rid of NA's
       rename(parameter = !!names(.[4]), limit = !!names(.[5])) %>% # rename columns to make functions easier to apply
       mutate(exceeds = ifelse(parameter > limit, T, F)) # Identify where above NH3 WQS limit
     return(quickStats(ammonia, 'AcuteAmmonia'))
@@ -103,18 +103,21 @@ AmmoniaPlotlySingleStation <- function(input,output,session, AUdata, stationSele
       filter(!is.na(AMMONIA)) %>%
       mutate(over=ifelse(AMMONIA > NH3limit, '#D11814', '#535559'))# 'VIOLATION', 'GOOD'))
     dat$SampleDate <- as.POSIXct(as.POSIXct(dat$FDT_DATE_TIME, format="%m/%d/%Y %H:%M"), format="%m/%d/%y")
-     
-    plot_ly(data=dat)%>%
-      add_markers(data=dat, x= ~SampleDate, y= ~AMMONIA,mode = 'scatter', name="Ammonia (mg/L as N)",marker = list(color= ~over),#'#535559'),
-                  hoverinfo="text",text=~paste(sep="<br>",
-                                               paste("Date: ",SampleDate),
-                                               paste("Depth: ",FDT_DEPTH, "m"),
-                                               paste("Ammonia: ",AMMONIA,"mg/L as N"),
-                                               paste('Acute Ammonia Limit: ',format(NH3limit, digits=3),"mg/L as N"),
-                                               paste('pH: ', FDT_FIELD_PH, '(unitless)')))%>%
-      layout(showlegend=FALSE,
-             yaxis=list(title="Ammonia (mg/L as N)"),
-             xaxis=list(title="Sample Date",tickfont = list(size = 10)))
+    
+    if(nrow(dat) > 0){ 
+      plot_ly(data=dat)%>%
+        add_markers(data=dat, x= ~SampleDate, y= ~AMMONIA,mode = 'scatter', name="Ammonia (mg/L as N)",marker = list(color= ~over),#'#535559'),
+                    hoverinfo="text",text=~paste(sep="<br>",
+                                                 paste("Date: ",SampleDate),
+                                                 paste("Depth: ",FDT_DEPTH, "m"),
+                                                 paste("Ammonia: ",AMMONIA,"mg/L as N"),
+                                                 paste('Acute Ammonia Limit: ',format(NH3limit, digits=3),"mg/L as N"),
+                                                 paste('pH: ', FDT_FIELD_PH, '(unitless)')))%>%
+        layout(showlegend=FALSE,
+               yaxis=list(title="Ammonia (mg/L as N)"),
+               xaxis=list(title="Sample Date",tickfont = list(size = 10)))
+    }
+    
   })
   
   
@@ -147,7 +150,7 @@ server <- function(input,output,session){
     filter(AUData, FDT_STA_ID %in% input$stationSelection) })
   stationSelected <- reactive({input$stationSelection})
   
-  AUData <- reactive({filter(conventionals_HUC, ID305B_1 %in% 'VAW-H01R_JMS04A00' | 
+  AUData <- reactive({filter(conventionals_HUC, ID305B_1 %in% 'VAW-H01R_HUO02A02' | 
                                ID305B_2 %in% 'VAW-H01R_JMS04A00' | 
                                ID305B_2 %in% 'VAW-H01R_JMS04A00')%>% 
       left_join(WQSvalues, by = 'CLASS')})

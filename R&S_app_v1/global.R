@@ -247,14 +247,14 @@ acuteNH3exceedance <- function(x){
   # Trout absent scenario, freshwater
   if(unique(x$CLASS) %in% c("III","IV")){
     ammonia <- acuteNH3limit(x) %>%
-      filter(!is.na(NH3limit)) %>% #get rid of NA's
+      filter(!is.na(AMMONIA)) %>% #get rid of NA's
       rename(parameter = !!names(.[4]), limit = !!names(.[5])) %>% # rename columns to make functions easier to apply
       mutate(exceeds = ifelse(parameter > limit, T, F)) # Identify where above NH3 WQS limit
     return(quickStats(ammonia, 'AcuteAmmonia'))  }
   # Trout present scenario, freshwater
   if(unique(x$CLASS) %in% c("V","VI")){
     ammonia <- acuteNH3limit(x) %>%
-      filter(!is.na(NH3limit)) %>% #get rid of NA's
+      filter(!is.na(AMMONIA)) %>% #get rid of NA's
       rename(parameter = !!names(.[4]), limit = !!names(.[5])) %>% # rename columns to make functions easier to apply
       mutate(exceeds = ifelse(parameter > limit, T, F)) # Identify where above NH3 WQS limit
     return(quickStats(ammonia, 'AcuteAmmonia'))

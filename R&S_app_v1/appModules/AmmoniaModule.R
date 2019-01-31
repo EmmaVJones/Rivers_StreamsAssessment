@@ -38,16 +38,17 @@ AmmoniaPlotlySingleStation <- function(input,output,session, AUdata, stationSele
     dat$SampleDate <- as.POSIXct(as.POSIXct(dat$FDT_DATE_TIME, format="%m/%d/%Y %H:%M"), format="%m/%d/%y")
     
     plot_ly(data=dat)%>%
-      add_markers(data=dat, x= ~SampleDate, y= ~AMMONIA,mode = 'scatter', name="Ammonia (mg/L as N)",marker = list(color= ~over),#'#535559'),
-                  hoverinfo="text",text=~paste(sep="<br>",
-                                               paste("Date: ",SampleDate),
-                                               paste("Depth: ",FDT_DEPTH, "m"),
-                                               paste("Ammonia: ",AMMONIA,"mg/L as N"),
-                                               paste('Acute Ammonia Limit: ',format(NH3limit, digits=3),"mg/L as N"),
-                                               paste('pH: ', FDT_FIELD_PH, '(unitless)')))%>%
-      layout(showlegend=FALSE,
-             yaxis=list(title="Ammonia (mg/L as N)"),
-             xaxis=list(title="Sample Date",tickfont = list(size = 10)))
+        add_markers(data=dat, x= ~SampleDate, y= ~AMMONIA,mode = 'scatter', name="Ammonia (mg/L as N)",marker = list(color= ~over),#'#535559'),
+                    hoverinfo="text",text=~paste(sep="<br>",
+                                                 paste("Date: ",SampleDate),
+                                                 paste("Depth: ",FDT_DEPTH, "m"),
+                                                 paste("Ammonia: ",AMMONIA,"mg/L as N"),
+                                                 paste('Acute Ammonia Limit: ',format(NH3limit, digits=3),"mg/L as N"),
+                                                 paste('pH: ', FDT_FIELD_PH, '(unitless)')))%>%
+        layout(showlegend=FALSE,
+               yaxis=list(title="Ammonia (mg/L as N)"),
+               xaxis=list(title="Sample Date",tickfont = list(size = 10)))
+    
   })
   
   output$AmmoniaRangeTableSingleSite <- renderTable({
