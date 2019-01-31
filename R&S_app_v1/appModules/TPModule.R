@@ -4,7 +4,11 @@ TPPlotlySingleStationUI <- function(id){
     wellPanel(
       h4(strong('Single Station Data Visualization')),
       uiOutput(ns('TP_oneStationSelectionUI')),
-      plotlyOutput(ns('TPplotly'))  )
+      plotlyOutput(ns('TPplotly')),
+      h5('Total Phosphorus exceedances of 0.2 mg/L for the ',span(strong('selected site')),' are highlighted below.'),
+      fluidRow(
+        column(6, h6('If there is no data listed below then none of the measures exceeded 0.2 mg/L Total Phosphorus.'), tableOutput(ns("stationTPExceedance"))),
+        column(6, h6('Total Phosphorus > 0.2 mg/L exceedance rate'),tableOutput(ns("stationTPExceedanceRate")))))  
   )
 }
 
@@ -54,4 +58,15 @@ TPPlotlySingleStation <- function(input,output,session, AUdata, stationSelectedA
              xaxis=list(title="Sample Date",tickfont = list(size = 10)))
   })
   
+  output$stationTPExceedance <- renderTable({
+    req(input$TP_oneStationSelection, TP_oneStation())
+    dplyr::select(TP_oneStation(), FDT_STA_ID, FDT_DATE_TIME, FDT_DEPTH, PHOSPHORUS) %>%
+      filter(PHOSPHORUS > 0.2)
+  })
+  
+  
+  output$stationTPExceedanceRate <- renderTable({
+    req(input$TP_oneStationSelection, TP_oneStation())
+    TPexceed(TP_oneStation()) %>% dplyr::select(-NUT_TP_STAT)
+  })
 }

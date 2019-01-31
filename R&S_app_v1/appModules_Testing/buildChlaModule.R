@@ -24,7 +24,14 @@ AUData <- filter(conventionals_HUC, ID305B_1 %in% 'VAW-I21R_DCK01A06' |
 x <-filter(AUData, FDT_STA_ID %in% '2-DCK003.94') 
 
 
-# No Assessment functions bc no std
+# No Assessment functions bc no std but still need to count samples taken
+
+countchla <- function(x){
+  dplyr::select(x,FDT_STA_ID,FDT_DATE_TIME,PHOSPHORUS)%>% # Just get relevant columns
+    filter(!is.na(PHOSPHORUS)) %>% #get rid of NA's
+    summarize(NUT_CHLA_VIO= NA, NUT_CHLA_SAMP= n(), NUT_CHLA_STAT= NA)
+}
+
 
 
 chlAPlotlySingleStationUI <- function(id){

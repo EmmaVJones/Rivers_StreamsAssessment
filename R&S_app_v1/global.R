@@ -171,6 +171,32 @@ exceedance_DO_DailyAvg <- function(x){
 }
 
 
+#### TP semi Assessment Functions ---------------------------------------------------------------------------------------------------
+
+countTP <- function(x){
+  dplyr::select(x,FDT_STA_ID,FDT_DATE_TIME,PHOSPHORUS)%>% # Just get relevant columns
+    filter(!is.na(PHOSPHORUS)) %>% #get rid of NA's
+    summarize(NUT_TP_VIO= NA, NUT_TP_SAMP= n(), NUT_TP_STAT= NA)
+}
+
+TPexceed <- function(x){
+  TP <- dplyr::select(x,FDT_STA_ID,FDT_DATE_TIME,PHOSPHORUS) %>%
+    filter(!is.na(PHOSPHORUS)) %>% #get rid of NA's
+    mutate(limit = 0.2) %>%
+    rename(parameter = !!names(.[3])) %>% # rename columns to make functions easier to apply
+    mutate(exceeds = ifelse(parameter > limit, T, F)) # Identify where above NH3 WQS limit
+  return(quickStats(TP, 'NUT_TP')) 
+}
+
+
+#### Chl a semi Assessment Functions ---------------------------------------------------------------------------------------------------
+
+countchla <- function(x){
+  dplyr::select(x,FDT_STA_ID,FDT_DATE_TIME,PHOSPHORUS)%>% # Just get relevant columns
+    filter(!is.na(PHOSPHORUS)) %>% #get rid of NA's
+    summarize(NUT_CHLA_VIO= NA, NUT_CHLA_SAMP= n(), NUT_CHLA_STAT= NA)
+}
+
 #### E.coli OLD Assessment Functions ---------------------------------------------------------------------------------------------------
 
 bacteria_ExceedancesGeomeanOLD <- function(x, bacteriaType, geomeanLimit){
@@ -345,7 +371,7 @@ benthicAssessment <- function(x,conventionals_sf,VSCI,VCPMI){
   x <- filter(conventionals_sf, FDT_STA_ID %in% x$FDT_STA_ID)#'2-JKS033.06') #'2-JMS279.41')##
   if(nrow(x) >0){
     x2 <- benthicResultMetrics(x,VSCI,VCPMI)$data
-    if (!is.na(x2)){return(data.frame(BENTHIC_STAT='Review'))
+    if (!any(is.na(x2))){return(data.frame(BENTHIC_STAT='Review'))
     }else{return(data.frame(BENTHIC_STAT=NA))}
   } else{return(data.frame(BENTHIC_STAT=NA))}
 }
