@@ -4,8 +4,8 @@ source('AUshapefileLocation.R')
 
 assessmentLayer <- st_read('GIS/AssessmentRegions_VA84_basins.shp') %>%
   st_transform( st_crs(4326)) 
-stationTable <- read_csv('data/BRRO_Sites_AU_WQS.csv')
-stationTable <- readRDS('data/BRROsites_ROA_sf.RDS')
+#stationTable <- read_csv('data/BRRO_Sites_AU_WQS.csv')
+#stationTable1 <- readRDS('data/BRROsites_ROA_sf.RDS')
 conventionals <- suppressWarnings(read_csv('data/CONVENTIONALS_20171010.csv'))
 conventionals$FDT_DATE_TIME2 <- as.POSIXct(conventionals$FDT_DATE_TIME, format="%m/%d/%Y %H:%M")
 #commentList <- readRDS('Comments/commentList.RDS')
@@ -123,8 +123,8 @@ shinyServer(function(input, output, session) {
   # Pull Conventionals data for selected AU on click
   conventionals_HUC <- eventReactive( input$pullHUCdata, {
     z <- filter(conventionals, Huc6_Vahu6 %in% huc6_filter()$VAHU6) %>%
-      left_join(dplyr::select(stationTable(), FDT_STA_ID, SEC, CLASS, SPSTDS, ID305B_1, ID305B_2, ID305B_3#,
-#                              #STATION_TYPE_1, STATION_TYPE_2, STATION_TYPE_3
+      left_join(dplyr::select(stationTable(), FDT_STA_ID, SEC, CLASS, SPSTDS, ID305B_1, ID305B_2, ID305B_3,
+                              STATION_TYPE_1, STATION_TYPE_2, STATION_TYPE_3
                               ), by='FDT_STA_ID')})
   
   output$AUSelection_ <- renderUI({ req(conventionals_HUC())
@@ -181,7 +181,7 @@ shinyServer(function(input, output, session) {
   
   ## Station Table View Section
   observe(siteData$StationTableResults <- cbind(
-#    #StationTableStartingData(stationData()), 
+    StationTableStartingData(stationData()), 
     tempExceedances(stationData()), DOExceedances_Min(stationData()), pHExceedances(stationData()),
                                                 bacteriaExceedances_OLD(bacteria_Assessment_OLD(stationData(), 'E.COLI', 126, 235),'E.COLI')%>% 
                                                   dplyr::rename('ECOLI_VIO' = 'E.COLI_VIO', 'ECOLI_SAMP'='E.COLI_SAMP', 'ECOLI_STAT'='E.COLI_STAT'),# force things to match Cleo's format

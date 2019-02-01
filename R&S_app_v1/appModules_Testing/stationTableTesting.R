@@ -1,19 +1,26 @@
 source('testingDataset.R')
 monStationTemplate <- read_excel('data/tbl_ir_mon_stations_template.xlsx') # from X:\2018_Assessment\StationsDatabase\VRO
 stationTable <- read_csv('data/BRRO_Sites_AU_WQS.csv')
-conventionals_HUC<- left_join(conventionals, dplyr::select(stationTable, FDT_STA_ID, SEC, CLASS, SPSTDS, ID305B_1, ID305B_2, ID305B_3, 
-                                                           STATION_TYPE_1, STATION_TYPE_2, STATION_TYPE_3), by='FDT_STA_ID')
-x <-filter(conventionals_HUC, FDT_STA_ID %in% '2-JKS033.06')%>% 
+conventionals_HUC<-  #filter(conventionals, Huc6_Vahu6 %in% 'JM01') %>% #huc6_filter()$VAHU6) %>%
+  left_join(conventionals, dplyr::select(stationTable,#stationTable(), 
+                          FDT_STA_ID, SEC, CLASS, SPSTDS, ID305B_1, ID305B_2, ID305B_3,
+                          STATION_TYPE_1, STATION_TYPE_2, STATION_TYPE_3
+  ), by='FDT_STA_ID')
+
+
+x <-filter(conventionals_HUC, FDT_STA_ID %in% '2-JMS279.41') %>%#'2-JKS033.06')%>% 
   left_join(WQSvalues, by = 'CLASS') #'2-JMS279.41')#
-x2 <- filter(conventionals_HUC, FDT_STA_ID %in% '2-JKS028.69')%>% 
+x2 <- filter(conventionals_HUC, FDT_STA_ID %in% '2-DCK003.94')%>% 
   left_join(WQSvalues, by = 'CLASS')
 
 
 concatinateUnique <- function(stuff){
-  if(is.na(stuff)){return(NA)
+  if(length(stuff)==1){
+    if(is.na(stuff)){return(NA)
   }else{
-    return(paste(unique(stuff), collapse= ', '))
-  }
+    return(paste(unique(stuff), collapse= ', ')) }
+  } 
+  if(length(stuff) > 1){return(paste(unique(stuff), collapse= ', '))}
 }
 
 changeDEQRegionName <- function(stuff){
@@ -34,13 +41,16 @@ StationTableStartingData <- function(x){
              DEPTH = concatinateUnique(x$FDT_DEPTH_DESC), STATION_ID = concatinateUnique(x$FDT_STA_ID), REGION = changeDEQRegionName(concatinateUnique(x$Deq_Region)), 
              STATION_TYPE_1= concatinateUnique(x$STATION_TYPE_1), STATION_TYPE_2=concatinateUnique(x$STATION_TYPE_2), 
              STATION_TYPE_3= concatinateUnique(x$STATION_TYPE_3), STATION_LAT = concatinateUnique(x$Latitude), 
-             STATION_LON = concatinateUnique(x$Longitude), 
-             WATERSHED_ID= substr(strsplit(concatinateUnique(x$ID305B_1), '-')[[1]][2], 1, 3), VAHU6 = concatinateUnique(x$Huc6_Vahu6) )
+             STATION_LON = concatinateUnique(x$Longitude), WATERSHED_ID= concatinateUnique(x$ID305B_1),
+             VAHU6 = concatinateUnique(x$Huc6_Vahu6) )
+  # Should be this but issues with shiny application of function          
+  #WATERSHED_ID= substr(strsplit(as.character(concatinateUnique(x$ID305B_1), '-'))[[1]][2], 1, 3), 
   
   }
 
 
-StationTableResults <- cbind(StationTableStartingData(x), tempExceedances(x), DOExceedances_Min(x), pHExceedances(x),
+StationTableResults <- cbind(#StationTableStartingData(x), 
+  tempExceedances(x), DOExceedances_Min(x), pHExceedances(x),
                              bacteriaExceedances_OLD(bacteria_Assessment_OLD(x, 'E.COLI', 126, 235),'E.COLI') %>% 
                                dplyr::rename('ECOLI_VIO' = 'E.COLI_VIO', 'ECOLI_SAMP'='E.COLI_SAMP', 'ECOLI_STAT'='E.COLI_STAT'),
                              bacteriaExceedances_OLD(bacteria_Assessment_OLD(x, 'ENTEROCOCCI', 35, 104),'ENTEROCOCCI') %>% 

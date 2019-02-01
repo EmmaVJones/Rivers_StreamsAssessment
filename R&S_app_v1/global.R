@@ -80,10 +80,12 @@ assessmentDetermination <- function(parameterDF,parameterAssessmentDF,parameter,
 # Station Table building functions
 
 concatinateUnique <- function(stuff){
-  if(is.na(stuff)){return(NA)
-  }else{
-    return(paste(unique(stuff), collapse= ', '))
-    }
+  if(length(stuff)==1){
+    if(is.na(stuff)){return(NA)
+    }else{
+      return(paste(unique(stuff), collapse= ', ')) }
+  } 
+  if(length(stuff) > 1){return(paste(unique(stuff), collapse= ', '))}
 }
 
 changeDEQRegionName <- function(stuff){
@@ -99,16 +101,18 @@ changeDEQRegionName <- function(stuff){
   } else {return(concatinateUnique(stuff))}
 }
 
+
 StationTableStartingData <- function(x){
   data.frame(ID305B_1= concatinateUnique(x$ID305B_1), ID305B_2= concatinateUnique(x$ID305B_2), ID305B_3= concatinateUnique(x$ID305B_3),
              DEPTH = concatinateUnique(x$FDT_DEPTH_DESC), STATION_ID = concatinateUnique(x$FDT_STA_ID), REGION = changeDEQRegionName(concatinateUnique(x$Deq_Region)), 
              STATION_TYPE_1= concatinateUnique(x$STATION_TYPE_1), STATION_TYPE_2=concatinateUnique(x$STATION_TYPE_2), 
              STATION_TYPE_3= concatinateUnique(x$STATION_TYPE_3), STATION_LAT = concatinateUnique(x$Latitude), 
-             STATION_LON = concatinateUnique(x$Longitude), 
-             WATERSHED_ID= substr(strsplit(concatinateUnique(x$ID305B_1), '-')[[1]][2], 1, 3), VAHU6 = concatinateUnique(x$Huc6_Vahu6) )
+             STATION_LON = concatinateUnique(x$Longitude), WATERSHED_ID= concatinateUnique(x$ID305B_1),
+             VAHU6 = concatinateUnique(x$Huc6_Vahu6) )
+  # Should be this but issues with shiny application of function          
+  #WATERSHED_ID= substr(strsplit(as.character(concatinateUnique(x$ID305B_1), '-'))[[1]][2], 1, 3), 
   
 }
-
 
 
 #### Temperature Assessment Functions ---------------------------------------------------------------------------------------------------
