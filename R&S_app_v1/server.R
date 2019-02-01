@@ -232,8 +232,17 @@ shinyServer(function(input, output, session) {
     AMM <- acuteNH3exceedance(stationData()) %>% # ammonia function being a pain so forcing it in
       dplyr::select(AcuteAmmonia_VIO, AcuteAmmonia_STAT) %>% 
       dplyr::rename('WAT_TOX_VIO' ='AcuteAmmonia_VIO','WAT_TOX_STAT' = 'AcuteAmmonia_STAT')#data.frame(WAT_TOX_VIO='Not Analyzed by App', WAT_TOX_STAT='Not Analyzed by App'),# Placeholder for water toxics
-    
-    z2 <- cbind(z, siteData$StationTableResults1, AMM)
+    more <- cbind(metalsExceedances(filter(Smetals, FDT_STA_ID %in% stationData()$FDT_STA_ID) %>% 
+                                      dplyr::select(`ACENAPHTHENE`:ZINC), 'SED_MET') %>%
+                    dplyr::select(-ends_with('exceedanceRate')),
+                  data.frame(SED_TOX_VIO='Not Analyzed by App', SED_TOX_STAT='Not Analyzed by App'),# Placeholder for sediment toxics
+                  data.frame(FISH_MET_VIO='Not Analyzed by App', FISH_MET_STAT='Not Analyzed by App'), # Placeholder for fish metals
+                  data.frame(FISH_TOX_VIO='Not Analyzed by App', FISH_TOX_STAT='Not Analyzed by App'),# Placeholder for fish toxics
+                  benthicAssessment(stationData(),conventionals_sf,VSCI,VCPMI),
+                  countTP(stationData()),
+                  countchla(stationData()),
+                  data.frame(COMMENTS= 'Not Analyzed by App')) %>% dplyr::select(-ends_with('exceedanceRate'))
+    z2 <- cbind(z, siteData$StationTableResults1, AMM, more)
     
     datatable(z2, extensions = 'Buttons', escape=F, rownames = F, editable = TRUE,
               options= list(scrollX = TRUE, pageLength = nrow(z2),
@@ -248,10 +257,10 @@ shinyServer(function(input, output, session) {
       formatStyle(c('PH_SAMP','PH_VIO','PH_STAT'), 'PH_STAT', backgroundColor = styleEqual(c('Review'), c('red'))) %>%
       formatStyle(c('ECOLI_SAMP','ECOLI_VIO','ECOLI_STAT'), 'ECOLI_STAT', backgroundColor = styleEqual(c('Review'), c('red'))) %>%
       formatStyle(c('ENTER_SAMP','ENTER_VIO','ENTER_STAT'), 'ENTER_STAT', backgroundColor = styleEqual(c('Review'), c('red'))) %>%
-      formatStyle(c('WAT_MET_VIO','WAT_MET_STAT'), 'WAT_MET_STAT', backgroundColor = styleEqual(c('Review'), c('red'))) #%>%
-#      #formatStyle(c('WAT_TOX_VIO','WAT_TOX_STAT'), 'WAT_TOX_STAT', backgroundColor = styleEqual(c('Review'), c('red'))) %>%
-      #formatStyle(c('SED_MET_VIO','SED_MET_STAT'), 'SED_MET_STAT', backgroundColor = styleEqual(c('Review'), c('red'))) %>%
-      #formatStyle(c('BENTHIC_STAT'), 'BENTHIC_STAT', backgroundColor = styleEqual(c('Review'), c('red'))) 
+      formatStyle(c('WAT_MET_VIO','WAT_MET_STAT'), 'WAT_MET_STAT', backgroundColor = styleEqual(c('Review'), c('red'))) %>%
+      formatStyle(c('WAT_TOX_VIO','WAT_TOX_STAT'), 'WAT_TOX_STAT', backgroundColor = styleEqual(c('Review'), c('red'))) %>%
+      formatStyle(c('SED_MET_VIO','SED_MET_STAT'), 'SED_MET_STAT', backgroundColor = styleEqual(c('Review'), c('red'))) %>%
+      formatStyle(c('BENTHIC_STAT'), 'BENTHIC_STAT', backgroundColor = styleEqual(c('Review'), c('red'))) 
       
 
   })

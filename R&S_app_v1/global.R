@@ -429,10 +429,10 @@ quickStats <- function(parameterDataset, parameter){
                           SAMP = nrow(parameterDataset)) %>%
       mutate(exceedanceRate = (VIO/SAMP)*100)
     
-    if(results$exceedanceRate > 10.5 & results$SAMP > 10){outcome <- 'Review'}
+    if(results$exceedanceRate > 10.5 & results$VIO >= 1 & results$SAMP > 10){outcome <- 'Review'}
     if(results$exceedanceRate < 10.5 & results$SAMP > 10){outcome <- 'S'}
-    if(results$VIO >= 1 & results$SAMP < 10){outcome <- 'Review'}
-    if(results$VIO < 1 & results$SAMP < 10){outcome <- 'S'}
+    if(results$VIO >= 1 & results$SAMP <= 10){outcome <- 'Review'}
+    if(results$VIO < 1 & results$SAMP <= 10){outcome <- 'S'}
     
     
     results <- mutate(results, STAT = outcome)

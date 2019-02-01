@@ -116,48 +116,21 @@ server <- shinyServer(function(input, output, session) {
                                                   dplyr::rename('ECOLI_VIO' = 'E.COLI_VIO', 'ECOLI_SAMP'='E.COLI_SAMP', 'ECOLI_STAT'='E.COLI_STAT'),
                                                 bacteriaExceedances_OLD(bacteria_Assessment_OLD(stationData(), 'ENTEROCOCCI', 35, 104),'ENTEROCOCCI') %>% 
                                                   dplyr::rename('ENTER_VIO' = 'ENTEROCOCCI_VIO', 'ENTER_SAMP'='ENTEROCOCCI_SAMP', 'ENTER_STAT'='ENTEROCOCCI_STAT'),
-                                                
                                                 metalsExceedances(filter(WCmetals, FDT_STA_ID %in% stationData()$FDT_STA_ID) %>% 
                                                                     dplyr::select(`ANTIMONY HUMAN HEALTH PWS`:`ZINC ALL OTHER SURFACE WATERS`), 'WAT_MET'))%>%
     dplyr::select(-ends_with('exceedanceRate')))
   
-  #observe(siteData$StationTableResults2 <- if(unique(stationData()$CLASS) %in% c("III","IV")){
-  #  ammonia <- acuteNH3limit(stationData()) %>%
-  #    filter(!is.na(AMMONIA)) %>% #get rid of NA's
-  #    rename(parameter = !!names(.[4]), limit = !!names(.[5])) %>% # rename columns to make functions easier to apply
-  #    mutate(exceeds = ifelse(parameter > limit, T, F)) # Identify where above NH3 WQS limit
-  #  quickStats(ammonia, 'AcuteAmmonia')%>% 
-  #    dplyr::select(AcuteAmmonia_VIO, AcuteAmmonia_STAT) %>% 
-  #    dplyr::rename('WAT_TOX_VIO' ='AcuteAmmonia_VIO','WAT_TOX_STAT' = 'AcuteAmmonia_STAT') %>%
-  #    dplyr::select(-ends_with('exceedanceRate'))  }
-  #  # Trout present scenario, freshwater
-  #  if(unique(stationData()$CLASS) %in% c("V","VI")){
-  #    ammonia <- acuteNH3limit(stationData()) %>%
-  #      filter(!is.na(AMMONIA)) %>% #get rid of NA's
-  #      rename(parameter = !!names(.[4]), limit = !!names(.[5])) %>% # rename columns to make functions easier to apply
-  #      mutate(exceeds = ifelse(parameter > limit, T, F)) # Identify where above NH3 WQS limit
-  #    quickStats(ammonia, 'AcuteAmmonia') %>% 
-  #      dplyr::select(AcuteAmmonia_VIO, AcuteAmmonia_STAT) %>% 
-  #      dplyr::rename('WAT_TOX_VIO' ='AcuteAmmonia_VIO','WAT_TOX_STAT' = 'AcuteAmmonia_STAT') %>%
-  #  dplyr::select(-ends_with('exceedanceRate'))})
-           # cbind(acuteNH3exceedance(stationData()) %>% 
-          #                                        dplyr::select(AcuteAmmonia_VIO, AcuteAmmonia_STAT) %>% 
-          #                                        dplyr::rename('WAT_TOX_VIO' ='AcuteAmmonia_VIO','WAT_TOX_STAT' = 'AcuteAmmonia_STAT')) %>%
-    #dplyr::select(-ends_with('exceedanceRate')))#,#data.frame(WAT_TOX_VIO='Not Analyzed by App', WAT_TOX_STAT='Not Analyzed by App'),# Placeholder for water toxics
-                                                
-                                              #  # Placeholder for water toxics
-                                              #  metalsExceedances(filter(Smetals, FDT_STA_ID %in% x$FDT_STA_ID) %>% 
-                                              #                      dplyr::select(`ACENAPHTHENE`:ZINC), 'SED_MET'),
-                                              #  
-                                              #  data.frame(SED_TOX_VIO='Not Analyzed by App', SED_TOX_STAT='Not Analyzed by App'),# Placeholder for sediment toxics
-                                              #  data.frame(FISH_MET_VIO='Not Analyzed by App', FISH_MET_STAT='Not Analyzed by App'), # Placeholder for fish metals
-                                              #  data.frame(FISH_TOX_VIO='Not Analyzed by App', FISH_TOX_STAT='Not Analyzed by App'),# Placeholder for fish toxics
-                                              #  benthicAssessment(x,conventionals_sf,VSCI,VCPMI),
-                                              #  countTP(x),
-                                              #  countchla(x),
-                                              #  #data.frame(NUT_TP_VIO='Not Analyzed by App',NUT_TP_SAMP= 'Not Analyzed by App', NUT_TP_STAT='Not Analyzed by App'), # Placeholder bc only applies to Lakes or Cbay
-                                              #  #data.frame(NUT_CHLA_VIO='Not Analyzed by App', NUT_CHLA_SAMP='Not Analyzed by App', NUT_CHLA_STAT='Not Analyzed by App'),# Placeholder bc only applies to Lakes or Cbay
-                                              #  data.frame(COMMENTS= 'Not Analyzed by App') # Assessor Comments
+  
+  #observe(siteData$StationTableResults2 <- cbind(data.frame(SED_TOX_VIO='Not Analyzed by App', SED_TOX_STAT='Not Analyzed by App'),# Placeholder for sediment toxics
+  #                                              data.frame(FISH_MET_VIO='Not Analyzed by App', FISH_MET_STAT='Not Analyzed by App'), # Placeholder for fish metals
+  #                                              data.frame(FISH_TOX_VIO='Not Analyzed by App', FISH_TOX_STAT='Not Analyzed by App'),# Placeholder for fish toxics
+  #                                              benthicAssessment(stationData(),conventionals_sf,VSCI,VCPMI),
+  #                                              countTP(stationData()),
+  #                                              countchla(stationData()),
+  #                                              #data.frame(NUT_TP_VIO='Not Analyzed by App',NUT_TP_SAMP= 'Not Analyzed by App', NUT_TP_STAT='Not Analyzed by App'), # Placeholder bc only applies to Lakes or Cbay
+  #                                              #data.frame(NUT_CHLA_VIO='Not Analyzed by App', NUT_CHLA_SAMP='Not Analyzed by App', NUT_CHLA_STAT='Not Analyzed by App'),# Placeholder bc only applies to Lakes or Cbay
+  #                                              data.frame(COMMENTS= 'Not Analyzed by App')) %>% # Assessor Comments
+  #          dplyr::select(-ends_with('exceedanceRate')))
   
             #data.frame(ID305B_1= concatinateUnique(stationData()$ID305B_1),
                                           #      ID305B_2= concatinateUnique(stationData()$ID305B_2), ID305B_3= concatinateUnique(stationData()$ID305B_3),
@@ -171,15 +144,11 @@ server <- shinyServer(function(input, output, session) {
                                           #      VAHU6 = concatinateUnique(stationData()$Huc6_Vahu6)))
   
   output$test <- renderPrint({
-    acuteNH3exceedance(stationData())
-    #print(unique(stationData()$CLASS) %in% c("III","IV"))
-    #print(unique(stationData()$CLASS) %in% c("V","VI"))
-    #ammonia <- acuteNH3limit(stationData()) %>%
-    #  filter(!is.na(AMMONIA)) %>% #get rid of NA's
-    #  rename(parameter = !!names(.[4]), limit = !!names(.[5])) %>% # rename columns to make functions easier to apply
-    #  mutate(exceeds = ifelse(parameter > limit, T, F))
-    #quickStats(ammonia, 'AcuteAmmonia')
-    
+    metalsExceedances(filter(Smetals, FDT_STA_ID %in% stationData()$FDT_STA_ID) %>% 
+                        dplyr::select(`ACENAPHTHENE`:ZINC), 'SED_MET') %>%
+      dplyr::select(-ends_with('exceedanceRate'))
+  #  metalsExceedances(filter(Smetals, FDT_STA_ID %in% stationData()$FDT_STA_ID) %>% 
+  #                                                                  dplyr::select(`ACENAPHTHENE`:ZINC), 'SED_MET') %>%
   })
     
   output$stationTableDataSummary <- DT::renderDataTable({
@@ -193,8 +162,19 @@ server <- shinyServer(function(input, output, session) {
     AMM <- acuteNH3exceedance(stationData()) %>% # ammonia function being a pain so forcing it in
       dplyr::select(AcuteAmmonia_VIO, AcuteAmmonia_STAT) %>% 
       dplyr::rename('WAT_TOX_VIO' ='AcuteAmmonia_VIO','WAT_TOX_STAT' = 'AcuteAmmonia_STAT')#data.frame(WAT_TOX_VIO='Not Analyzed by App', WAT_TOX_STAT='Not Analyzed by App'),# Placeholder for water toxics
-    
-    z2 <- cbind(z, siteData$StationTableResults1, AMM)
+    more <- cbind(metalsExceedances(filter(Smetals, FDT_STA_ID %in% stationData()$FDT_STA_ID) %>% 
+                                        dplyr::select(`ACENAPHTHENE`:ZINC), 'SED_MET') %>%
+                      dplyr::select(-ends_with('exceedanceRate')),
+                    data.frame(SED_TOX_VIO='Not Analyzed by App', SED_TOX_STAT='Not Analyzed by App'),# Placeholder for sediment toxics
+                    data.frame(FISH_MET_VIO='Not Analyzed by App', FISH_MET_STAT='Not Analyzed by App'), # Placeholder for fish metals
+                    data.frame(FISH_TOX_VIO='Not Analyzed by App', FISH_TOX_STAT='Not Analyzed by App'),# Placeholder for fish toxics
+                    benthicAssessment(stationData(),conventionals_sf,VSCI,VCPMI),
+                    countTP(stationData()),
+                    countchla(stationData()),
+                    #data.frame(NUT_TP_VIO='Not Analyzed by App',NUT_TP_SAMP= 'Not Analyzed by App', NUT_TP_STAT='Not Analyzed by App'), # Placeholder bc only applies to Lakes or Cbay
+                    #data.frame(NUT_CHLA_VIO='Not Analyzed by App', NUT_CHLA_SAMP='Not Analyzed by App', NUT_CHLA_STAT='Not Analyzed by App'),# Placeholder bc only applies to Lakes or Cbay
+                    data.frame(COMMENTS= 'Not Analyzed by App')) %>% dplyr::select(-ends_with('exceedanceRate'))
+    z2 <- cbind(z, siteData$StationTableResults1, AMM, more)#, siteData$StationTableResults2)
     
     datatable(z2, extensions = 'Buttons', escape=F, rownames = F, editable = TRUE,
               options= list(scrollX = TRUE, pageLength = nrow(z2),

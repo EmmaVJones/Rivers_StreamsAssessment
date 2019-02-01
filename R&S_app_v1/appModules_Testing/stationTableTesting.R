@@ -10,7 +10,7 @@ conventionals_HUC<-  #filter(conventionals, Huc6_Vahu6 %in% 'JM01') %>% #huc6_fi
   ), by='FDT_STA_ID')
 
 
-x <-filter(conventionals_HUC, FDT_STA_ID %in% '2-JMS279.41') %>%#'2-JKS033.06')%>% 
+x <-filter(conventionals_HUC, FDT_STA_ID %in% '2-BKL000.15') %>%#'2-JMS279.41') %>%#'2-JKS033.06')%>% 
   left_join(WQSvalues, by = 'CLASS') #'2-JMS279.41')#
 x2 <- filter(conventionals_HUC, FDT_STA_ID %in% '2-DCK003.94')%>% 
   left_join(WQSvalues, by = 'CLASS')
