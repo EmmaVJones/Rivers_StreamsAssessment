@@ -1,5 +1,7 @@
 source('testingDataset.R')
 monStationTemplate <- read_excel('data/tbl_ir_mon_stations_template.xlsx') # from X:\2018_Assessment\StationsDatabase\VRO
+conventionals <- suppressWarnings(read_csv('data/CONVENTIONALS_20171010.csv'))
+conventionals$FDT_DATE_TIME2 <- as.POSIXct(conventionals$FDT_DATE_TIME, format="%m/%d/%Y %H:%M")
 stationTable <- read_csv('data/BRRO_Sites_AU_WQS.csv')
 conventionals_HUC<-  #filter(conventionals, Huc6_Vahu6 %in% 'JM01') %>% #huc6_filter()$VAHU6) %>%
   left_join(conventionals, dplyr::select(stationTable,#stationTable(), 

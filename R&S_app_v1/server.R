@@ -180,37 +180,63 @@ shinyServer(function(input, output, session) {
     DT::datatable(z, options= list(pageLength = nrow(z), scrollY = "250px", dom='t'))  })
   
   ## Station Table View Section
-  observe(siteData$StationTableResults <- cbind(
-    StationTableStartingData(stationData()), 
-    tempExceedances(stationData()), DOExceedances_Min(stationData()), pHExceedances(stationData()),
-                                                bacteriaExceedances_OLD(bacteria_Assessment_OLD(stationData(), 'E.COLI', 126, 235),'E.COLI')%>% 
-                                                  dplyr::rename('ECOLI_VIO' = 'E.COLI_VIO', 'ECOLI_SAMP'='E.COLI_SAMP', 'ECOLI_STAT'='E.COLI_STAT'),# force things to match Cleo's format
-                                                bacteriaExceedances_OLD(bacteria_Assessment_OLD(stationData(), 'ENTEROCOCCI', 35, 104),'ENTEROCOCCI')%>% 
-                                                  dplyr::rename('ENTER_VIO' = 'ENTEROCOCCI_VIO', 'ENTER_SAMP'='ENTEROCOCCI_SAMP', 'ENTER_STAT'='ENTEROCOCCI_STAT'),# force things to match Cleo's format
-                                                metalsExceedances(filter(WCmetals, FDT_STA_ID %in% stationData()$FDT_STA_ID) %>% 
-                                                                    dplyr::select(`ANTIMONY HUMAN HEALTH PWS`:`ZINC ALL OTHER SURFACE WATERS`), 'WAT_MET'),
-#                                                #acuteNH3exceedance(stationData()) %>% 
-#                                                #  dplyr::select(AcuteAmmonia_VIO, AcuteAmmonia_STAT) %>% 
-#                                                #  dplyr::rename('WAT_TOX_VIO' ='AcuteAmmonia_VIO','WAT_TOX_STAT' = 'AcuteAmmonia_STAT'),#data.frame(WAT_TOX_VIO='Not Analyzed by App', WAT_TOX_STAT='Not Analyzed by App'),# Placeholder for water toxics
-                                                metalsExceedances(filter(Smetals, FDT_STA_ID %in% stationData()$FDT_STA_ID) %>% 
-                                                                    dplyr::select(`ACENAPHTHENE`:ZINC), 'SED_MET'),
-                                                data.frame(SED_TOX_VIO='Not Analyzed by App', SED_TOX_STAT='Not Analyzed by App'),# Placeholder for sediment toxics
-                                                data.frame(FISH_MET_VIO='Not Analyzed by App', FISH_MET_STAT='Not Analyzed by App'), # Placeholder for fish metals
-                                                data.frame(FISH_TOX_VIO='Not Analyzed by App', FISH_TOX_STAT='Not Analyzed by App'),# Placeholder for fish toxics
-                                                benthicAssessment(stationData(),conventionals_sf,VSCI,VCPMI),
-                                                countTP(stationData()),
-                                                countchla(stationData()),
-                                                #data.frame(NUT_TP_VIO='Not Analyzed by App',NUT_TP_SAMP= 'Not Analyzed by App', NUT_TP_STAT='Not Analyzed by App'), # Placeholder bc only applies to Lakes or Cbay
-                                                #data.frame(NUT_CHLA_VIO='Not Analyzed by App', NUT_CHLA_SAMP='Not Analyzed by App', NUT_CHLA_STAT='Not Analyzed by App'),# Placeholder bc only applies to Lakes or Cbay
-                                                data.frame(COMMENTS= 'Not Analyzed by App') # Assessor Comments
-                                                )%>%
+  observe(siteData$StationTablePrelimStuff <- StationTableStartingData(stationData()))
+  #observe(siteData$StationTableResults <- cbind(tempExceedances(stationData()), 
+  #                                              DOExceedances_Min(stationData()), pHExceedances(stationData()),
+  #                                              bacteriaExceedances_OLD(bacteria_Assessment_OLD(stationData(), 'E.COLI', 126, 235),'E.COLI') %>% 
+  #                                                dplyr::rename('ECOLI_VIO' = 'E.COLI_VIO', 'ECOLI_SAMP'='E.COLI_SAMP', 'ECOLI_STAT'='E.COLI_STAT'),
+  #                                              bacteriaExceedances_OLD(bacteria_Assessment_OLD(stationData(), 'ENTEROCOCCI', 35, 104),'ENTEROCOCCI') %>% 
+  #                                                dplyr::rename('ENTER_VIO' = 'ENTEROCOCCI_VIO', 'ENTER_SAMP'='ENTEROCOCCI_SAMP', 'ENTER_STAT'='ENTEROCOCCI_STAT'),
+  #                                              
+  #                                              metalsExceedances(filter(WCmetals, FDT_STA_ID %in% stationData()$FDT_STA_ID) %>% 
+  #                                                                  dplyr::select(`ANTIMONY HUMAN HEALTH PWS`:`ZINC ALL OTHER SURFACE WATERS`), 'WAT_MET'),
+  #                                              acuteNH3exceedance(stationData()) %>% 
+  #                                                dplyr::select(AcuteAmmonia_VIO, AcuteAmmonia_STAT) %>% 
+  #                                                dplyr::rename('WAT_TOX_VIO' ='AcuteAmmonia_VIO','WAT_TOX_STAT' = 'AcuteAmmonia_STAT'),#data.frame(WAT_TOX_VIO='Not Analyzed by App', WAT_TOX_STAT='Not Analyzed by App'),# Placeholder for water toxics
+  #                                              
+  #                                              # Placeholder for water toxics
+  #                                              metalsExceedances(filter(Smetals, FDT_STA_ID %in% stationData()$FDT_STA_ID) %>% 
+  #                                                                  dplyr::select(`ACENAPHTHENE`:ZINC), 'SED_MET'),
+  #                                              
+  #                                              data.frame(SED_TOX_VIO='Not Analyzed by App', SED_TOX_STAT='Not Analyzed by App'),# Placeholder for sediment toxics
+  #                                              data.frame(FISH_MET_VIO='Not Analyzed by App', FISH_MET_STAT='Not Analyzed by App'), # Placeholder for fish metals
+  #                                              data.frame(FISH_TOX_VIO='Not Analyzed by App', FISH_TOX_STAT='Not Analyzed by App'),# Placeholder for fish toxics
+  #                                              benthicAssessment(stationData(),conventionals_sf,VSCI,VCPMI),
+  #                                              countTP(stationData()),
+  #                                              countchla(stationData()),
+  #                                              #data.frame(NUT_TP_VIO='Not Analyzed by App',NUT_TP_SAMP= 'Not Analyzed by App', NUT_TP_STAT='Not Analyzed by App'), # Placeholder bc only applies to Lakes or Cbay
+  #                                              #data.frame(NUT_CHLA_VIO='Not Analyzed by App', NUT_CHLA_SAMP='Not Analyzed by App', NUT_CHLA_STAT='Not Analyzed by App'),# Placeholder bc only applies to Lakes or Cbay
+  #                                              data.frame(COMMENTS= 'Not Analyzed by App') # Assessor Comments
+  #)%>%
+  #  dplyr::select(-ends_with('exceedanceRate')))
+# 
+  observe(siteData$StationTableResults1 <- cbind(tempExceedances(stationData()), 
+                                                 DOExceedances_Min(stationData()), pHExceedances(stationData()),
+                                                 bacteriaExceedances_OLD(bacteria_Assessment_OLD(stationData(), 'E.COLI', 126, 235),'E.COLI') %>% 
+                                                   dplyr::rename('ECOLI_VIO' = 'E.COLI_VIO', 'ECOLI_SAMP'='E.COLI_SAMP', 'ECOLI_STAT'='E.COLI_STAT'),
+                                                 bacteriaExceedances_OLD(bacteria_Assessment_OLD(stationData(), 'ENTEROCOCCI', 35, 104),'ENTEROCOCCI') %>% 
+                                                   dplyr::rename('ENTER_VIO' = 'ENTEROCOCCI_VIO', 'ENTER_SAMP'='ENTEROCOCCI_SAMP', 'ENTER_STAT'='ENTEROCOCCI_STAT'),
+                                                 
+                                                 metalsExceedances(filter(WCmetals, FDT_STA_ID %in% stationData()$FDT_STA_ID) %>% 
+                                                                     dplyr::select(`ANTIMONY HUMAN HEALTH PWS`:`ZINC ALL OTHER SURFACE WATERS`), 'WAT_MET'))%>%
             dplyr::select(-ends_with('exceedanceRate')))
   
   output$stationTableDataSummary <- DT::renderDataTable({
     req(stationData())
-    z <- cbind(data.frame(StationID = unique(stationData()$FDT_STA_ID)), siteData$StationTableResults) 
-    datatable(z, extensions = 'Buttons', escape=F, rownames = F, editable = TRUE,
-              options= list(scrollX = TRUE, pageLength = nrow(z),
+    # Crazy data manipulation here to make sure factor NA's converted to real NA and string edits for reactive object creative solution
+    z <- siteData$StationTablePrelimStuff%>%
+      mutate_all(as.character)
+    z[z =="NA"] <- NA
+    watID <-  substr(strsplit(as.character(z$ID305B_1), '-')[[1]][2] , 1, 3)
+    z$WATERSHED_ID <- watID 
+    AMM <- acuteNH3exceedance(stationData()) %>% # ammonia function being a pain so forcing it in
+      dplyr::select(AcuteAmmonia_VIO, AcuteAmmonia_STAT) %>% 
+      dplyr::rename('WAT_TOX_VIO' ='AcuteAmmonia_VIO','WAT_TOX_STAT' = 'AcuteAmmonia_STAT')#data.frame(WAT_TOX_VIO='Not Analyzed by App', WAT_TOX_STAT='Not Analyzed by App'),# Placeholder for water toxics
+    
+    z2 <- cbind(z, siteData$StationTableResults1, AMM)
+    
+    datatable(z2, extensions = 'Buttons', escape=F, rownames = F, editable = TRUE,
+              options= list(scrollX = TRUE, pageLength = nrow(z2),
                             # hide certain columns
                             #columnDefs = list(list(targets = 6, visible = FALSE)),
                             dom='Bt', buttons=list('copy',
@@ -222,10 +248,10 @@ shinyServer(function(input, output, session) {
       formatStyle(c('PH_SAMP','PH_VIO','PH_STAT'), 'PH_STAT', backgroundColor = styleEqual(c('Review'), c('red'))) %>%
       formatStyle(c('ECOLI_SAMP','ECOLI_VIO','ECOLI_STAT'), 'ECOLI_STAT', backgroundColor = styleEqual(c('Review'), c('red'))) %>%
       formatStyle(c('ENTER_SAMP','ENTER_VIO','ENTER_STAT'), 'ENTER_STAT', backgroundColor = styleEqual(c('Review'), c('red'))) %>%
-      formatStyle(c('WAT_MET_VIO','WAT_MET_STAT'), 'WAT_MET_STAT', backgroundColor = styleEqual(c('Review'), c('red'))) %>%
+      formatStyle(c('WAT_MET_VIO','WAT_MET_STAT'), 'WAT_MET_STAT', backgroundColor = styleEqual(c('Review'), c('red'))) #%>%
 #      #formatStyle(c('WAT_TOX_VIO','WAT_TOX_STAT'), 'WAT_TOX_STAT', backgroundColor = styleEqual(c('Review'), c('red'))) %>%
-      formatStyle(c('SED_MET_VIO','SED_MET_STAT'), 'SED_MET_STAT', backgroundColor = styleEqual(c('Review'), c('red'))) %>%
-      formatStyle(c('BENTHIC_STAT'), 'BENTHIC_STAT', backgroundColor = styleEqual(c('Review'), c('red'))) 
+      #formatStyle(c('SED_MET_VIO','SED_MET_STAT'), 'SED_MET_STAT', backgroundColor = styleEqual(c('Review'), c('red'))) %>%
+      #formatStyle(c('BENTHIC_STAT'), 'BENTHIC_STAT', backgroundColor = styleEqual(c('Review'), c('red'))) 
       
 
   })
