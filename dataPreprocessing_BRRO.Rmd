@@ -354,3 +354,173 @@ shinyFunction = function() {
 test <- shinyFunction()
 ```
 
+
+
+```{r my attempt at shiny gadget}
+tooMany <- snapCheck(snapList_AU[['sf_output']] ) %>%
+  st_transform(4326)# project to WGS84 for plotting
+tooMany1 <- filter(tooMany, `Point Unique Identifier` == '2-APP143.57')
+
+siteWithTooMany <- filter(BRRO_Sites_noAU, FDT_STA_ID %in% unique(tooMany$`Point Unique Identifier`)) %>%
+  st_transform(4326)# project to WGS84 for plotting
+siteWithTooMany1 <- filter(siteWithTooMany, FDT_STA_ID =='2-APP143.57')
+
+sfLines <- tooMany1
+sfPoint <- siteWithTooMany1
+
+test <- AUselecter(sfLines, sfPoint) 
+
+AUselecter <- function(sfLines, sfPoint) {
+  ui <- miniPage(
+  gadgetTitleBar("AU Selection"),
+  miniTabstripPanel(
+    miniTabPanel("Site", icon = icon("mouse-pointer"),#sliders
+                 miniContentPanel(
+                   uiOutput('StationID'),
+                   radioButtons("auChosen", "Choose the correct assessment unit for the site", 
+                                choices = sfLines$ID305B, selected = NULL),
+                   miniButtonBlock(
+                     actionButton("chooseAU", "Choose AU"))
+                   )),
+    miniTabPanel("Map", icon = icon("map-o"),
+      miniContentPanel(padding = 0,
+        leafletOutput("map", height = "100%")
+      )),
+    miniTabPanel('Table', icon = icon("table"),
+      miniContentPanel(
+        DT::dataTableOutput("table")))
+    )
+)
+
+
+server <- function(input, output, session) {
+  
+  output$StationID <- renderUI({unique(sfLines$`Point Unique Identifier`)})
+  
+  output$map <- renderLeaflet({
+    m <- mapview(sfLines, label= sfLines$ID305B, layer.name = c('AUs snapped to selected site'), 
+            zcol = "ID305B", legend=FALSE,
+            popup= popupTable(sfLines, zcol=c("ID305B","MILES","CYCLE","WATER_NAME","LOCATION" )),
+            map.types = c("OpenStreetMap","Esri.WorldImagery")) +
+      mapview(sfPoint, color = 'yellow',lwd= 5, label= sfPoint$FDT_STA_ID, 
+              layer.name = c('Selected Site'),
+              popup= popupTable(sfPoint, zcol=c('FDT_STA_ID','STA_DESC')),
+              map.types = c("OpenStreetMap","Esri.WorldImagery"))
+    m@map 
+      
+  })
+
+  output$table <- DT::renderDataTable({
+    z <- sfLines %>% st_set_geometry(NULL)
+    DT::datatable(z, rownames = FALSE, options= list(pageLength = nrow(z), scrollY = "290px", dom='t'))
+  })
+  
+  #observeEvent(input$chooseAU, {
+  #   userValue <- data.frame(StationID = unique(sfPoint$FDT_STA_ID), ID305B = input$auChosen)
+  #})
+  
+   observeEvent(input$done, {
+     userValue <- data.frame(StationID = as.character(unique(sfPoint$FDT_STA_ID)), 
+                             ID305B = as.character(input$auChosen))
+     stopApp(userValue)
+  })
+}
+
+runGadget(shinyApp(ui, server))
+
+}
+
+```
+
+
+
+```{r loop attempt}
+# make test dataset with 4 sites
+tooMany <- snapCheck(snapList_AU[['sf_output']] ) %>%
+  st_transform(4326)# project to WGS84 for plotting
+tooMany4 <- filter(tooMany, `Point Unique Identifier` %in% unique(tooMany$`Point Unique Identifier`)[1:4])
+
+siteWithTooMany <- filter(BRRO_Sites_noAU, FDT_STA_ID %in% unique(tooMany$`Point Unique Identifier`)) %>%
+  st_transform(4326)# project to WGS84 for plotting
+siteWithTooMany4 <- filter(siteWithTooMany, FDT_STA_ID %in% tooMany4$`Point Unique Identifier`)
+
+
+
+#test1 <- data.frame(StationID = as.character(NA), ID305B = as.character(NA)) 
+StationID <- as.character(nrow(siteWithTooMany4))
+ID305B <- as.character(nrow(siteWithTooMany4))
+
+for (i in 1:nrow(siteWithTooMany4)){
+  zz <- AUselecter(filter(tooMany4, `Point Unique Identifier` %in% siteWithTooMany4[i,]), 
+                          siteWithTooMany4[i,]) 
+  StationID[i] <- as.character(zz[1][[1]])
+  ID305B[i] <- as.character(zz[2][[1]])
+  #test1[i,] <- rbind(cbind(StationID = 'kjfdsakj', ID305B = 'kjdfsakjdsfakjdsfkjsdaf'))
+    #data.frame(StationID = as.character(zz[1][[1]]), ID305B = as.character(zz[2][[1]]))
+}
+
+results  <- data.frame(StationID, ID305B, stringsAsFactors = FALSE)
+```
+
+
+
+```{r}
+library(shiny)
+library(miniUI)
+library(leaflet)
+library(ggplot2)
+
+ui <- miniPage(
+  gadgetTitleBar("Shiny gadget example"),
+  miniTabstripPanel(
+    miniTabPanel("Parameters", icon = icon("sliders"),
+      miniContentPanel(
+        sliderInput("year", "Year", 1978, 2010, c(2000, 2010), sep = "")
+      )
+    ),
+    miniTabPanel("Visualize", icon = icon("area-chart"),
+      miniContentPanel(
+        plotOutput("cars", height = "100%")
+      )
+    ),
+    miniTabPanel("Map", icon = icon("map-o"),
+      miniContentPanel(padding = 0,
+        leafletOutput("map", height = "100%")
+      ),
+      miniButtonBlock(
+        actionButton("resetMap", "Reset")
+      )
+    ),
+    miniTabPanel("Data", icon = icon("table"),
+      miniContentPanel(
+        DT::dataTableOutput("table")
+      )
+    )
+  )
+)
+
+server <- function(input, output, session) {
+  output$cars <- renderPlot({
+    require(ggplot2)
+    ggplot(cars, aes(speed, dist)) + geom_point()
+  })
+
+  output$map <- renderLeaflet({
+    force(input$resetMap)
+
+    leaflet(quakes, height = "100%") %>% addTiles() %>%
+      addMarkers(lng = ~long, lat = ~lat)
+  })
+
+  output$table <- DT::renderDataTable({
+    diamonds
+  })
+
+  observeEvent(input$done, {
+    stopApp(TRUE)
+  })
+}
+
+runGadget(shinyApp(ui, server), viewer = paneViewer())
+```
+
