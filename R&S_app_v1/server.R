@@ -37,7 +37,7 @@ shinyServer(function(input, output, session) {
   siteData <- reactiveValues()
   
   ## Data Upload Tab
-  stationTable <- reactive({read_csv('data/BRRO_Sites_AU_WQS.csv')})#readRDS('data/BRROsites_ROA_sf.RDS')})
+  stationTable <- reactive({read_csv('data/RegionalResults_AU_WQS.csv')})#'data/BRRO_Sites_AU_WQS.csv')})#readRDS('data/BRROsites_ROA_sf.RDS')})
   # Where I will go after testing
   #stationTable <- reactive({
   #  req(input$stationsTable)

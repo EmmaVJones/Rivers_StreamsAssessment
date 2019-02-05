@@ -511,6 +511,95 @@ write_csv(BRRO_Sites_AU_WQS_james,'data/BRRO_Sites_AU_WQS_james.csv')
 
 SO we have something that will go into the app, need to make that whole basin specific process a function and need to spit out final XXXX_Sites_AU_WQS.csv with all data (so user can hand edit if they want), a dataset that will work immediately within app (drop sites that have no AU info or WQS info), and with a dataset that highlights sites that either dont have WQS info or dont have AU info.
 
+Start on that function:
+
+```{r function for WQS snapping and data manipulation}
+# function Inputs
+AUsnappedSites <- BRRO_Sites_AU # ALL sites as sf object, regardless of AU connection or not
+WQSfileLocation <- 'C:/updatedWQS/' # file location of WQS shapefiles
+basinName <- "James River Basin" #unique(AUsnappedSites$Basin)[i]
+bufferDistances <- seq(10,80,by=10)
+
+basinNameSwitcher <- function(conventionalsName){
+  if(conventionalsName == "James River Basin"){return('James')}
+  if(conventionalsName == "Roanoke River Basin"){return('Roanoke')}
+  if(conventionalsName == "Chowan and Dismal Swamp River Basin"){return('ChowanDismalSwamp')}
+  if(conventionalsName == "New River Basin"){return('New')}
+  if(conventionalsName == "Shenandoah River Basin"){return('Shenandoah')}
+  if(conventionalsName == "Potomac River Basin"){return('Potomac')}
+  if(conventionalsName == "Ches. Bay and Small Coastal Basin"){return('ChesBay')}
+  if(conventionalsName == "Rappahannock River Basin"){return('Rappahannock')}
+  if(conventionalsName == "Tennessee and Big Sandy River Basin"){return('TennesseeBigSandy')}
+  if(conventionalsName == "York River Basin"){return('York')}
+  if(is.na(conventionalsName)){return(NA)}
+}
+
+
+snapAndOrganizeWQS <- function(AUsnappedSites, WQSfileLocation, basinName, bufferDistances){
+  # Bring in WQS for basin
+  print('Bringing in appropriate WQS file')
+  WQS <- st_read(paste(WQSfileLocation,'updated',basinName,'.shp', sep='')) %>%
+    st_transform(crs = 102003) # convert to Albers Equal Area just for snapping
+  # snapping logic
+  print(paste('Snapping sites to WQS by:',bufferDistances,'meters', sep=' '))
+  snapList_WQS <- snap_Points_to_Feature_List(AUsnappedSites,'FDT_STA_ID',WQS, bufferDistances)
+  
+  # sites that snapped to too many segments
+  tooMany <- snapCheck(snapList_WQS[['sf_output']])%>%
+    st_transform(4326)# project to WGS84 for plotting
+  
+  # perfect sites
+  sites <- filter(snapList_WQS[['sf_output']], !(`Point Unique Identifier` %in% tooMany$`Point Unique Identifier`)) %>%
+    st_set_geometry(NULL) %>%
+    mutate(FDT_STA_ID=`Point Unique Identifier`)
+  
+  # Didn't snap to any WQS in 80m
+  noWQS <- snapList_WQS[['tbl_output']]
+
+  # User fix sites that snapped to too many segments
+  siteWithTooMany <- filter(AUsnappedSites, FDT_STA_ID %in% unique(tooMany$`Point Unique Identifier`)) %>%
+    st_transform(4326)# project to WGS84 for plotting
+  
+  # Loop to build gadget for each site that snapped to too many sites
+  # empty place to put results, save time on processing and dont put in dataframe immediately bc
+  #   looping is already slow enough
+  StationID <- as.character(nrow(siteWithTooMany))
+  OBJECTID <- as.character(nrow(siteWithTooMany))
+  for (i in 1:nrow(siteWithTooMany)){
+    zz <- WQSselecter(filter(tooMany, `Point Unique Identifier` %in% siteWithTooMany[i,]), 
+                      siteWithTooMany[i,], i , nrow(siteWithTooMany)) 
+    StationID[i] <- as.character(zz[1][[1]])
+    OBJECTID[i] <- as.character(zz[2][[1]])   }
+  
+  results  <- data.frame(StationID, OBJECTID, stringsAsFactors = FALSE)
+  
+  # Combine sites that snapped to a segement perfectly the first time
+  results$OBJECTID <- as.integer(results$OBJECTID) # force to interger so join can happen on that column
+  results_WQS <- left_join(results, WQS, by='OBJECTID') %>%
+    mutate(`Buffer Distance` = 'User Selected', FDT_STA_ID=StationID) %>%
+    dplyr::rename(`Point Unique Identifier` = 'StationID') %>%
+    dplyr::select(`Point Unique Identifier`, `Buffer Distance`, everything(), -geometry) %>%
+    bind_rows(sites)  # add perfect sites
+  
+  # Use original basin AU dataset to include those sites that didnt snap to WQS segment within given buffer distances
+  Sites_AU_WQS <- left_join(AUsnappedSites, results_WQS, by = 'FDT_STA_ID') %>%
+    st_set_geometry(NULL)
+  
+  # final thing to give assessors for app 
+  return(Sites_AU_WQS) # this is essentially a basin specific version of 'data/BRRO_Sites_AU_WQS.csv')
+}
+
+
+regionalOutput <- list()
+# Loop through multiple basins
+for (i in 1:length(unique(AUsnappedSites$Basin))){
+  Regional_Sites_AU_basin <- filter(BRRO_Sites_AU, Basin %in% unique(AUsnappedSites$Basin)[i] )
+  WQSsnaps <- snapAndOrganizeWQS(Regional_Sites_AU_basin[1:10,], 'C:/updatedWQS/', basinNameSwitcher(unique(AUsnappedSites$Basin)[i]))
+  regionalOutput[i] <- WQSsnaps
+}
+
+
+```
 
 To do list:
 - make function to get from snapping function to AU chooser gadget
