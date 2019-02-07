@@ -62,7 +62,7 @@ server <- shinyServer(function(input, output, session) {
   siteData <- reactiveValues()
   
   ## Data Upload Tab
-  stationTable <- reactive({read_csv('data/BRRO_Sites_AU_WQS.csv')})#readRDS('data/BRROsites_ROA_sf.RDS')})
+  stationTable <- reactive({read_csv('data/RegionalResults_AU_WQS.csv')})#read_csv('data/BRRO_Sites_AU_WQS.csv')})#readRDS('data/BRROsites_ROA_sf.RDS')})
   
   # Query VAHUC6's By Selectize arguments
   the_data <- reactive({assessmentLayer})

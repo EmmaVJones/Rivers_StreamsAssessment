@@ -32,19 +32,24 @@ shinyUI(fluidPage(theme="yeti.css",
                                             Stations Table 2.0 and Regional Assessment Unit shapefiles.'),
                                           h5('Stations Table 2.0'),
                                           helpText('This dataset is derived before any Rivers and Streams Assessment Tool analysis 
-                                                   procedures can commence using the ',span(strong('XXXXXX TOOL.')), 'After completing
-                                                   the requisite analyses from the ',span(strong('XXXXXX TOOL')),'once, users can 
+                                                   procedures can commence using the ',span(strong('Assessment Unit and WQS Snapping Tool.')), 
+                                                   'After completing the requisite analyses from the ',
+                                                   span(strong('Assessment Unit and WQS Snapping Tool')),'once, users can 
                                                    upload their results to the Rivers and Streams Assessment Tool each time they open
                                                    the tool for analysis.'),
                                           fileInput('stationsTable','Choose your Regional Stations Table 2.0.',
                                                     accept = c(".csv")),
                                           h5('Regional Assessment Units'),
-                                          helpText('This shapefile is the current working copy of the regional assessment units. It must
-                                                    be uploaded to the app on startup and/or any time any spatial changes to assessment
-                                                    units (split an assessment unit) are completed in ArcGIS to ensure the most up to 
-                                                    date assessment unit information is being utlized by the app.'),
-                                          fileInput('regionalAUshapefile','Choose your Regional Assessment Unit shapefile.',
-                                                    accept = c(".dbf",".prj",".sbn",".sbx",".shp","shp.xml",".shx")),
+                                          helpText(span('This shapefile is the current working copy of the regional assessment units.',
+                                                   strong('It will be uploaded to the app on startup for you to avoid shiny application 
+                                                           data upload limits.'), ' Any time any spatial changes (performed in ArcGIS on
+                                                   the file soured by the application) to the assessment units (e.g. split an assessment 
+                                                   unit) are saved', strong('and the application is re-launched'), 'these changes will be
+                                                   reflected in the Rivers and Streams Assessment Tool.')),
+                                          h6(strong('To view or change the location of the Regional Assessment Units shapefile sourced
+                                                    by the application, see the AUshapefileLocation.R script.')),
+                                          #fileInput('regionalAUshapefile','Choose your Regional Assessment Unit shapefile.',
+                                          #          accept = c(".dbf",".prj",".sbn",".sbx",".shp","shp.xml",".shx")),
                                 #          h5('Comment Files'),
                                 #          helpText('Comment files are generated each time an assessor utlizes the Rivers and Streams 
                                 #                   Assessment Tool comment fields. Though entering information into these fields is not

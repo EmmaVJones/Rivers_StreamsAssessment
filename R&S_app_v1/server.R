@@ -9,7 +9,7 @@ assessmentLayer <- st_read('GIS/AssessmentRegions_VA84_basins.shp') %>%
 conventionals <- suppressWarnings(read_csv('data/CONVENTIONALS_20171010.csv'))
 conventionals$FDT_DATE_TIME2 <- as.POSIXct(conventionals$FDT_DATE_TIME, format="%m/%d/%Y %H:%M")
 #commentList <- readRDS('Comments/commentList.RDS')
-monStationTemplate <- read_excel('data/tbl_ir_mon_stations_template.xlsx') # from X:\2018_Assessment\StationsDatabase\VRO
+#monStationTemplate <- read_excel('data/tbl_ir_mon_stations_template.xlsx') # from X:\2018_Assessment\StationsDatabase\VRO
 WCmetals <- read_excel('data/WATER_METALS_20170712.xlsx')
 Smetals <- read_excel('data/SEDIMENT_20170712.xlsx')
 # Bring in latest EDAS VSCI and (combined) VCPMI queries
@@ -37,22 +37,20 @@ shinyServer(function(input, output, session) {
   siteData <- reactiveValues()
   
   ## Data Upload Tab
-  stationTable <- reactive({read_csv('data/RegionalResults_AU_WQS.csv')})#'data/BRRO_Sites_AU_WQS.csv')})#readRDS('data/BRROsites_ROA_sf.RDS')})
+  #stationTable <- reactive({read_csv('data/RegionalResults_AU_WQS.csv') %>%
+  #    # fix periods in column names from excel
+  #    as_tibble() %>%
+  #    dplyr::rename(`Point Unique Identifier` ="Point.Unique.Identifier", `Buffer Distance` = "Buffer.Distance")})#'data/BRRO_Sites_AU_WQS.csv')})#readRDS('data/BRROsites_ROA_sf.RDS')})
   # Where I will go after testing
-  #stationTable <- reactive({
-  #  req(input$stationsTable)
-  #  inFile <- input$stationsTable
-  #  readRDS(inFile$datapath)
-  #})
+  stationTable <- reactive({
+    req(input$stationsTable)
+    inFile <- input$stationsTable
+    read_csv(inFile$datapath) %>%
+   #fix periods in column names from excel
+    as_tibble() %>%
+    dplyr::rename(`Point Unique Identifier` ="Point.Unique.Identifier", `Buffer Distance` = "Buffer.Distance")
+  })
   
-  
-  # Probably Delete
-  
-  #comments <- reactive({
-  #  req(input$commentFile)
-  #  inFile <- input$commentFile
-  #  read_csv(inFile$datapath) })
-  #observe(userData$comments <- comments())
   
 ##### NEED TO FIX #######################################################################  
   #output$stationTableMissingStations <- DT::renderDataTable({

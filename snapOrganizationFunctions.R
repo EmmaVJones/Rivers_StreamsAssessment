@@ -154,80 +154,87 @@ snapAndOrganizeAU <- function(Regional_Sites, previousCycleAU,
     left_join(previousCycleStationTable, by='STATION_ID') %>% # join to get ID305B info
     st_as_sf(coords = c("Longitude", "Latitude"),  # make spatial layer while at it
              remove = F, # don't remove these lat/lon cols from df
-             crs = 4269) %>% # add projection, needs to be geographic for now bc entering lat/lng, 
+             crs = 4326) %>% # add projection, needs to be geographic for now bc entering lat/lng, 
     st_transform( st_crs(previousCycleAU)) # now change crs to Albers to make snapping work
   
   
   # Only work with sites that don't already have AU info
   Regional_Sites_sf_noAU <- filter(Regional_Sites_sf, is.na(ID305B_1))
   
-  # snapping logic
-  print(paste('Snapping sites to AUs by:',min(bufferDistances),'to', max(bufferDistances), 'meters', sep=' '))
-  snapList_AU <- snap_Points_to_Feature_List(Regional_Sites_sf_noAU,'FDT_STA_ID',
-                                             previousCycleAU, bufferDistances)
-  #snapList_AU <- readRDS('data/allBRRO_snapList_AU.RDS') #prerun results
-  
-  if(nrow(snapList_AU[['sf_output']]) > 0){
-    # Process sites that snapped to too many segments
-    tooMany <- snapCheck(snapList_AU[['sf_output']])
+  if(nrow(Regional_Sites_sf_noAU) > 0){
+    # snapping logic
+    print(paste('Snapping sites to AUs by:',min(bufferDistances),'to', max(bufferDistances), 'meters', sep=' '))
+    snapList_AU <- snap_Points_to_Feature_List(Regional_Sites_sf_noAU,'FDT_STA_ID',
+                                               previousCycleAU, bufferDistances)
+    #snapList_AU <- readRDS('data/allBRRO_snapList_AU.RDS') #prerun results
     
-    # perfect sites
-    sites <- filter(snapList_AU[['sf_output']], 
-                    !(`Point Unique Identifier` %in% tooMany$`Point Unique Identifier`)) %>%
-      st_set_geometry(NULL) %>%
-      mutate(FDT_STA_ID=`Point Unique Identifier`)
-    
-    
-    if(nrow(tooMany) > 0){
-      tooMany <- tooMany %>%  st_transform(4326)# project to WGS84 for plotting
+    if(nrow(snapList_AU[['sf_output']]) > 0){
+      # Process sites that snapped to too many segments
+      tooMany <- snapCheck(snapList_AU[['sf_output']])
       
-      siteWithTooMany <- filter(Regional_Sites_sf_noAU, FDT_STA_ID %in% 
-                                  unique(tooMany$`Point Unique Identifier`)) %>%
-        st_transform(4326)# project to WGS84 for plotting
-      print(paste(length(unique(tooMany$`Point Unique Identifier`)),
-                  'sites that snapped to too many segments. These need manual review in pane to the right.'))
-      
-      # empty place to put results, save time on processing and dont put in dataframe immediately bc
-      # looping is already slow enough
-      StationID <- as.character(nrow(siteWithTooMany))
-      ID305B <- as.character(nrow(siteWithTooMany))
-      
-      for (i in 1:nrow(siteWithTooMany)){
-        zz <- AUselecter(filter(tooMany, `Point Unique Identifier` %in% siteWithTooMany[i,]),
-                         siteWithTooMany[i,], i , nrow(siteWithTooMany)) 
-        StationID[i] <- as.character(zz[1][[1]])
-        ID305B[i] <- as.character(zz[2][[1]])
-      }
-      
-      results  <- data.frame(StationID, ID305B, stringsAsFactors = FALSE)
-      
-      # Combine sites that snapped to a segement perfectly the first time
-      results_AU <- left_join(results, previousCycleAU, by='ID305B') %>%
-        mutate(`Buffer Distance` = 'User Selected') %>%
-        dplyr::rename(`Point Unique Identifier` = 'StationID') %>%
-        dplyr::select(`Point Unique Identifier`, `Buffer Distance`, ID305B, OBJECTID, everything(), -geometry) %>%
-        bind_rows(sites) %>% # add perfect sites
+      # perfect sites
+      sites <- filter(snapList_AU[['sf_output']], 
+                      !(`Point Unique Identifier` %in% tooMany$`Point Unique Identifier`)) %>%
+        st_set_geometry(NULL) %>%
         mutate(FDT_STA_ID=`Point Unique Identifier`)
-    } else {
-      results_AU <- sites
-    }
+      
+      
+      if(nrow(tooMany) > 0){
+        tooMany <- tooMany %>%  st_transform(4326)# project to WGS84 for plotting
+        
+        siteWithTooMany <- filter(Regional_Sites_sf_noAU, FDT_STA_ID %in% 
+                                    unique(tooMany$`Point Unique Identifier`)) %>%
+          st_transform(4326)# project to WGS84 for plotting
+        print(paste(length(unique(tooMany$`Point Unique Identifier`)),
+                    'sites that snapped to too many segments. These need manual review in pane to the right.'))
+        
+        # empty place to put results, save time on processing and dont put in dataframe immediately bc
+        # looping is already slow enough
+        StationID <- as.character(nrow(siteWithTooMany))
+        ID305B <- as.character(nrow(siteWithTooMany))
+        
+        for (i in 1:nrow(siteWithTooMany)){
+          zz <- AUselecter(filter(tooMany, `Point Unique Identifier` %in% siteWithTooMany[i,]),
+                           siteWithTooMany[i,], i , nrow(siteWithTooMany)) 
+          StationID[i] <- as.character(zz[1][[1]])
+          ID305B[i] <- as.character(zz[2][[1]])
+        }
+        
+        results  <- data.frame(StationID, ID305B, stringsAsFactors = FALSE)
+        
+        # Combine sites that snapped to a segement perfectly the first time
+        results_AU <- left_join(results, previousCycleAU, by='ID305B') %>%
+          mutate(`Buffer Distance` = 'User Selected') %>%
+          dplyr::rename(`Point Unique Identifier` = 'StationID') %>%
+          dplyr::select(`Point Unique Identifier`, `Buffer Distance`, ID305B, OBJECTID, everything(), -geometry) %>%
+          bind_rows(sites) %>% # add perfect sites
+          mutate(FDT_STA_ID=`Point Unique Identifier`)
+      } else {
+        results_AU <- sites
+      }
+      #Make a dataset that didnt have AU's when joined to stationTable but now does have AU info thanks to
+      # auto snapping or manual choice process
+      Regional_Sites_noAU_AU <- filter(Regional_Sites_sf_noAU, FDT_STA_ID %in% 
+                                         results_AU$`Point Unique Identifier`) %>%
+        st_set_geometry(NULL) %>%
+        left_join(results_AU, by = 'FDT_STA_ID') %>%
+        mutate(ID305B_1 = ID305B) %>%
+        select(FDT_STA_ID, ID305B_1)
+      
+      Regional_Sites_sf_AU <- Regional_Sites_sf %>% # start with sites regardless of AU's
+        left_join(Regional_Sites_noAU_AU, by = 'FDT_STA_ID') %>%
+        mutate(ID305B_1 = ifelse(is.na(ID305B_1.x), 
+                                 as.character(ID305B_1.y), ID305B_1.x)) %>% # replace with snapped if NA
+        dplyr::select(FDT_STA_ID:STATION_ID, ID305B_1,ID305B_2:geometry, -c(ID305B_1.x,ID305B_1.y)) 
+    
+  } 
+  
+  
+  } else {
+    Regional_Sites_sf_AU <- Regional_Sites_sf %>% # start with sites regardless of AU's
+      dplyr::select(FDT_STA_ID:STATION_ID, ID305B_1,ID305B_2:geometry)
   }
-  
-  #Make a dataset that didnt have AU's when joined to stationTable but now does have AU info thanks to
-  # auto snapping or manual choice process
-  Regional_Sites_noAU_AU <- filter(Regional_Sites_sf_noAU, FDT_STA_ID %in% 
-                                     results_AU$`Point Unique Identifier`) %>%
-    st_set_geometry(NULL) %>%
-    left_join(results_AU, by = 'FDT_STA_ID') %>%
-    mutate(ID305B_1 = ID305B) %>%
-    select(FDT_STA_ID, ID305B_1)
-  
-  Regional_Sites_sf_AU <- Regional_Sites_sf %>% # start with sites regardless of AU's
-    left_join(Regional_Sites_noAU_AU, by = 'FDT_STA_ID') %>%
-    mutate(ID305B_1 = ifelse(is.na(ID305B_1.x), 
-                             as.character(ID305B_1.y), ID305B_1.x)) %>% # replace with snapped if NA
-    select(FDT_STA_ID:STATION_ID, ID305B_1,ID305B_2:geometry, -c(ID305B_1.x,ID305B_1.y)) 
-  
+
   Regional_Sites_needVeryManualAU <- filter(Regional_Sites_sf_AU, is.na(ID305B_1))
   print(paste(nrow(Regional_Sites_needVeryManualAU), 'sites did not snap to any AU segments within', 
               max(bufferDistances),'meters. These will all need to be manually filled in in the output .csv 
