@@ -15,9 +15,11 @@ library(magrittr)
 
 # Bring in modules
 source('appModules/multipleDependentSelectizeArguments.R')
-source('newBacteriaStandard_working.R')
+#source('newBacteriaStandard_workingUpdatedRecSeason.R') # version with 2/3 samples in April-Oct
+source('newBacteriaStandard_working.R') # version with April-Oct +/- 30 days
 conventionals_sf <- readRDS('data/conventionals_sf.RDS')
 
+monStationTemplate <- read_excel('data/tbl_ir_mon_stations_template.xlsx') # from X:\2018_Assessment\StationsDatabase\VRO
 
 modulesToReadIn <- c('temperature','pH','DO','SpCond','Salinity','TN','Ecoli','chlA','Enteroccoci', 'TP','sulfate',
                      'Ammonia', 'Chloride', 'Nitrate','metals', 'fecalColiform','SSC','Benthics')
